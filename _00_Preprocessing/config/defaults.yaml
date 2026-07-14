@@ -1,0 +1,467 @@
+io:
+  dicom_roots:
+    - /data/alessia.gerbasi/DATA/CDI_NEXO_072026/CT_QUALITY_2_luis_roberts
+    - /data/alessia.gerbasi/DATA/CDI_NEXO_072026/1_dicom
+  injection_history_xlsx: /data/alessia.gerbasi/DATA/CDI_NEXO_072026/0_files/Injection History Anonymized.xlsx
+  link_anonymization_xlsx: /data/alessia.gerbasi/DATA/CDI_NEXO_072026/0_files/link_anonymization.xlsx
+  output_dir: /data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS
+
+selection:
+  accepted_procedure_codes:
+    - TACPEC
+    - TACCOR
+    - TACPEM
+    - TACTCG
+    - TACAAO
+    - TACAAT
+    - TACCRG
+    - TACADC
+    - TACBAC
+    - TACADI
+    - TACATD
+    - TACAGC
+    - TACCRA
+    - TACAGE
+    - TACANC
+    - TACAGI
+    - TACADN
+    - TACTFA
+    - TACACP
+    - TACPEV
+    - TACPEL
+    - TACREC
+    - TACCUO
+    - TACAAR
+    - TACAGA
+    - TACATC
+    - TACREN
+    - TACURO
+  procedure_groups:
+    vascular:
+      - TACCOR
+      - TACAAO
+      - TACAAT
+      - TACCRG
+      - TACADI
+      - TACATD
+      - TACAGC
+      - TACCRA
+      - TACAGE
+      - TACAGI
+      - TACACP
+      - TACCUO
+      - TACAAR
+      - TACAGA
+    parenchymal:
+      - TACPEC
+      - TACPEM
+      - TACTCG
+      - TACADC
+      - TACBAC
+      - TACANC
+      - TACADN
+      - TACTFA
+      - TACPEV
+      - TACPEL
+      - TACREC
+      - TACATC
+      - TACREN
+      - TACURO
+  # Phase tagging keywords. If one is found in series text, phase_name is set to that value.
+  phase_keywords:
+    - venosa
+    - arteriosa
+    - premonitoring
+    - monitoring
+    - base
+    - basale
+  include_keywords:
+    []
+  force_accept_keywords:
+    - monitoring
+  
+  exclude_keywords:
+    - mpr
+    - nan
+    - topogram
+    - snapshot
+    - none
+    - vrt
+    - encefalo
+    - mip
+    - wil
+    - movie
+    - tardiva
+    - tor
+    - I7
+    - prona
+    - neck
+    - min
+    - osteo
+
+  precedence: exclude
+
+merge:
+  enable_split_detection: true
+  require_contiguous_prefixes: true
+  write_collapsed_volumes: false
+  collapsed_only_accepted: true
+  collapsed_skip_existing: true
+  collapsed_max_groups: null
+
+runtime:
+  max_workers: 8
+  max_ct: null
+  dry_run: false
+
+logging:
+  level: INFO
+  jsonl_file: run_log.jsonl
+  console: true
+
+vascular_selection:
+  group_field: ct_id
+  keep_monitoring: true
+  candidate_status: accepted
+  exclude_monitoring: false
+  keep_additional_distinct_names: false
+  select_one_best_remaining: true
+  required_phase_buckets:
+    - premonitoring
+    - monitoring
+  allowed_procedure_codes:
+    - TACCOR
+    - TACAAO
+    - TACAAT
+    - TACCRG
+    - TACADI
+    - TACATD
+    - TACAGC
+    - TACCRA
+    - TACAGE
+    - TACAGI
+    - TACACP
+    - TACCUO
+    - TACAAR
+    - TACAGA
+  output_csv: retained_series_vascular_filtered.csv
+  summary_file: retained_series_vascular_filtered_summary.md
+  monitoring:
+    fields:
+      - series_name
+      - series_folder
+      - phase_name
+    patterns:
+      - '(?i)monitoring'
+  criteria:
+    - name: vascular_phase
+      fields:
+        - phase_name
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: venosa
+          patterns:
+            - '(?i)\bvenosa\b'
+        - label: arteriosa
+          patterns:
+            - '(?i)\barteriosa\b'
+        - label: other
+          patterns: []
+    - name: phase
+      fields:
+        - series_name
+        - series_folder
+        - phase_name
+      ordered_labels:
+        - label: bestdiast
+          patterns:
+            - '(?i)bestdiast'
+        - label: bestsyst
+          patterns:
+            - '(?i)bestsyst'
+        - label: explicit_rr
+          patterns:
+            - '(?i)(?:^|_|\b)\d{1,3}(?:[\.,]\d+)?(?:\s*|_)?%'
+        - label: other
+          patterns: []
+      rr_targets:
+        bestdiast: [70, 80]
+        bestsyst: [30, 40]
+      rr_extraction_patterns:
+        - '(?i)(?:^|_|\b)(\d{1,3})(?:[\.,]\d+)?(?:\s*|_)?%'
+    - name: kernel
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: i26f
+          patterns:
+            - '(?i)\bi26f\b'
+        - label: i30f
+          patterns:
+            - '(?i)\bi30f\b'
+        - label: b35f
+          patterns:
+            - '(?i)\bb35f\b'
+        - label: i36f
+          patterns:
+            - '(?i)\bi36f\b'
+        - label: i50f
+          patterns:
+            - '(?i)\bi50f\b'
+        - label: i70f
+          patterns:
+            - '(?i)\bi70f\b'
+        - label: other
+          patterns: []
+    - name: thickness
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: 0.6
+          patterns:
+            - '(?i)(?:^|_|\b)0[,_\.]6(?:_|\b)'
+        - label: 1.5
+          patterns:
+            - '(?i)(?:^|_|\b)1[,_\.]5(?:_|\b)'
+        - label: 3.0
+          patterns:
+            - '(?i)(?:^|_|\b)3[,_\.]0(?:_|\b)'
+        - label: other
+          patterns: []
+    - name: hr
+      fields:
+        - series_name
+        - series_folder
+      hr_patterns:
+        - '(?i)(?:^|_)hr(?:_|$)'
+    - name: rr
+      fields:
+        - series_name
+        - series_folder
+      rr_extraction_patterns:
+        - '(?i)(?:^|_|\b)(\d{1,3})(?:[\.,]\d+)?(?:\s*|_)?%'
+    - name: dose
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: 20
+          patterns:
+            - '(?i)(?:^|_)20(?:_|$)'
+        - label: 10
+          patterns:
+            - '(?i)(?:^|_)10(?:_|$)'
+        - label: 5
+          patterns:
+            - '(?i)(?:^|_)5(?:_|$)'
+        - label: other
+          patterns: []
+
+parenchymal_selection:
+  enabled: true
+  group_field: ct_id
+  group_by_phase: true
+  keep_monitoring: true
+  exclude_monitoring: false
+  keep_additional_distinct_names: false
+  required_phase_buckets:
+    - pre_contrast
+    - premonitoring
+    - monitoring
+    - venous
+    - arterial
+  phase_field: phase_name
+  phase_allowlist:
+    - pre_contrast
+    - basale
+    - premonitoring
+    - arterial
+    - arteriosa
+    - venous
+    - venosa
+    - monitoring
+  exclude_unknown_phase: true
+  drop_precontrast_when_arterial_and_venous:
+    enabled: false
+    precontrast_key: pre_contrast
+    arterial_key: arterial
+    venous_key: venous
+  phase_order:
+    - pre_contrast
+    - arterial
+    - venous
+  phase_aliases:
+    pre_contrast:
+      - '(?i)pre[\s_\-]?contrast'
+      - '(?i)basale'
+      - '(?i)base'
+      - '(?i)non[\s_\-]?contrast'
+      - '(?i)\baddome\b'
+    basale:
+      - '(?i)basale'
+      - '(?i)base'
+    premonitoring:
+      - '(?i)premonitoring'
+    arterial:
+      - '(?i)arteriosa'
+      - '(?i)arterial'
+    arteriosa:
+      - '(?i)arteriosa'
+    venous:
+      - '(?i)venosa'
+      - '(?i)venous'
+    venosa:
+      - '(?i)venosa'
+    monitoring:
+      - '(?i)monitoring'
+  candidate_status: accepted
+  monitoring:
+    fields:
+      - series_name
+      - series_folder
+      - phase_name
+    patterns:
+      - '(?i)monitoring'
+  allowed_procedure_codes:
+    - TACPEC
+    - TACPEM
+    - TACTCG
+    - TACADC
+    - TACBAC
+    - TACANC
+    - TACADN
+    - TACTFA
+    - TACPEV
+    - TACPEL
+    - TACREC
+    - TACATC
+    - TACREN
+    - TACURO
+  output_csv: retained_series_parenchymal_filtered.csv
+  summary_file: retained_series_parenchymal_filtered_summary.md
+  criteria:
+    - name: kernel
+      description: Prefer softer kernels (lower kernel number).
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: br40
+          patterns:
+            - '(?i)\bbr40\b'
+        - label: br44
+          patterns:
+            - '(?i)\bbr44\b'
+        - label: br48
+          patterns:
+            - '(?i)\bbr48\b'
+        - label: br56
+          patterns:
+            - '(?i)\bbr56\b'
+        - label: br64
+          patterns:
+            - '(?i)\bbr64\b'
+        - label: other
+          patterns: []
+    - name: reconstruction_family
+      description: Standard > iterative > spectral/monoenergetic > material maps.
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: standard
+          patterns:
+            - '(?i)\bstandard\b'
+            - '(?i)\bstd\b'
+        - label: iterative
+          patterns:
+            - '(?i)\b(admire|asir|asir-v|mbir|iterative)\b'
+        - label: spectral_mono
+          patterns:
+            - '(?i)\b(me|monoe|monoenergetic)\b'
+        - label: material_map
+          patterns:
+            - '(?i)\b(vnc|iodine|zeff|electron[\s_\-]?density)\b'
+        - label: other
+          patterns: []
+    - name: non_bone
+      description: non-osteo > osteo/bone/sharp.
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: non_bone
+          patterns:
+            - '^(?!.*(?i:(osteo|bone|sharp))).*$'
+        - label: bone_like
+          patterns:
+            - '(?i)\b(osteo|bone|sharp)\b'
+    - name: matrix
+      description: Prefer 512 over 1024.
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: 512
+          patterns:
+            - '(?i)\b512\b'
+        - label: 1024
+          patterns:
+            - '(?i)\b1024\b'
+        - label: other
+          patterns: []
+    - name: thickness
+      description: Prefer moderate thickness for parenchymal HU.
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: 2.0
+          patterns:
+            - '(?i)(?:^|_|\b)2[,_\.]0?(?:_|\b)'
+        - label: 3.0
+          patterns:
+            - '(?i)(?:^|_|\b)3[,_\.]0?(?:_|\b)'
+        - label: 1.0
+          patterns:
+            - '(?i)(?:^|_|\b)1[,_\.]0?(?:_|\b)'
+        - label: other
+          patterns: []
+    - name: dose
+      description: 20_ > 10_ > 5_.
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: 20
+          patterns:
+            - '(?i)(?:^|_)20(?:_|$)'
+        - label: 10
+          patterns:
+            - '(?i)(?:^|_)10(?:_|$)'
+        - label: 5
+          patterns:
+            - '(?i)(?:^|_)5(?:_|$)'
+        - label: other
+          patterns: []
+    - name: acquisition_size
+      description: standard > thin > submillimetric.
+      fields:
+        - series_name
+        - series_folder
+      ordered_labels:
+        - label: standard
+          patterns:
+            - '(?i)\bstandard\b'
+        - label: thin
+          patterns:
+            - '(?i)\bthin\b'
+        - label: submillimetric
+          patterns:
+            - '(?i)\bsub[\s_\-]?milli\w*\b'
+            - '(?i)\bsubmm\b'
+        - label: other
+          patterns: []

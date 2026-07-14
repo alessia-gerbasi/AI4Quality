@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+*.tmp
+*.log
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+artifacts/
+_00_Preprocessing/artifacts/
+.DS_Store

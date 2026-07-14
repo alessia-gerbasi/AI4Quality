@@ -1,0 +1,10 @@
+{
+  "excluded_ct_count": 1,
+  "excluded_cts": [
+    {
+      "ct_id": "485",
+      "ct_name": "jennie_wilson",
+      "reason": "only_base_monitoring_premonitoring"
+    }
+  ]
+}
