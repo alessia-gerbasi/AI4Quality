@@ -10,6 +10,7 @@ selection:
   accepted_procedure_codes:
     - TACPEC
     - TACCOR
+    - TACTON
     - TACPEM
     - TACTCG
     - TACAAO
@@ -39,6 +40,7 @@ selection:
   procedure_groups:
     vascular:
       - TACCOR
+      - TACTON
       - TACAAO
       - TACAAT
       - TACCRG
@@ -79,7 +81,22 @@ selection:
     []
   force_accept_keywords:
     - monitoring
-  
+    - toradd
+    - embolia
+
+  # If a keyword in this map matches in the text, the corresponding exclude keyword is cancelled.
+  exclude_keyword_veto:
+    tor:
+      - angio
+    lung:
+      - angio
+
+  # For specific procedure codes, only accept series whose text matches at least one of the listed terms.
+  procedure_specific_include_only:
+    TACTON:
+      - angio
+      - arteriosa
+
   exclude_keywords:
     - mpr
     - nan
@@ -98,6 +115,8 @@ selection:
     - neck
     - min
     - osteo
+    - lung
+    - massiccio
 
   precedence: exclude
 
@@ -127,6 +146,7 @@ vascular_selection:
   keep_additional_distinct_names: false
   select_one_best_remaining: true
   required_phase_buckets:
+    - aorta
     - premonitoring
     - monitoring
   allowed_procedure_codes:
@@ -144,6 +164,7 @@ vascular_selection:
     - TACCUO
     - TACAAR
     - TACAGA
+    - TACTON
   output_csv: retained_series_vascular_filtered.csv
   summary_file: retained_series_vascular_filtered_summary.md
   monitoring:
@@ -299,7 +320,7 @@ parenchymal_selection:
       - '(?i)basale'
       - '(?i)base'
       - '(?i)non[\s_\-]?contrast'
-      - '(?i)\baddome\b'
+      - '(?i)(?<![a-zA-Z])addome(?![a-zA-Z])'
     basale:
       - '(?i)basale'
       - '(?i)base'

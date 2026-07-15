@@ -14,6 +14,8 @@ class KeywordSelector(SelectorStrategy):
     include_keywords: list[str]
     exclude_keywords: list[str]
     force_accept_keywords: list[str]
+    exclude_keyword_veto: dict[str, list[str]]
+    procedure_specific_include_only: dict[str, list[str]]
     precedence: str = "exclude"
 
     def _norm(self, s: str | None) -> str:
@@ -52,12 +54,34 @@ class KeywordSelector(SelectorStrategy):
                 phase_name=phase_name,
             )
 
+        # Procedure-specific include filter: if configured, reject unless text matches one of the required terms.
+        required_terms = self.procedure_specific_include_only.get(procedure.upper(), [])
+        if required_terms and not any(term in text for term in required_terms):
+            return SelectionDecision(
+                status="rejected",
+                reason_code="not_in_procedure_specific_include",
+                reason_detail=f"Procedure {procedure.upper()} requires one of: {', '.join(required_terms)}",
+                include_hits=[],
+                exclude_hits=[],
+                phase_name=phase_name,
+            )
+
         include_hits = [k for k in self.include_keywords if k in text]
         exclude_hits = [k for k in self.exclude_keywords if k in text]
         force_accept_hits = [k for k in self.force_accept_keywords if k in text]
 
         if self._is_vascular(procedure) and "tor" in exclude_hits:
             exclude_hits = [hit for hit in exclude_hits if hit != "tor"]
+
+        # Cancel exclude keywords when a veto term is present in the text.
+        if self.exclude_keyword_veto:
+            vetoed = {
+                kw
+                for kw, veto_terms in self.exclude_keyword_veto.items()
+                if kw in exclude_hits and any(vt in text for vt in veto_terms)
+            }
+            if vetoed:
+                exclude_hits = [hit for hit in exclude_hits if hit not in vetoed]
 
         if force_accept_hits:
             return SelectionDecision(

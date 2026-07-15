@@ -41,7 +41,7 @@ phase_aliases:
   - (?i)basale
   - (?i)base
   - (?i)non[\s_\-]?contrast
-  - (?i)\baddome\b
+  - (?i)(?<![a-zA-Z])addome(?![a-zA-Z])
   basale:
   - (?i)basale
   - (?i)base
@@ -220,16 +220,19 @@ policy_name: parenchymal
 
 ## Selection Results
 
-- Exams processed: 156
-- Groups processed: 156
-- Selected parenchymal series: 419
+- Exams processed: 162
+- Groups processed: 162
+- Selected parenchymal series: 438
 - Monitoring rows kept: 56
-- Exams without an eligible vascular series: 27
+- Exams without an eligible vascular series: 31
 
 ## Exams With No Eligible Parenchymal Series
 
 - 113 mary_robinson (monitoring rows kept: 0)
 - 116 george_romero (monitoring rows kept: 0)
+- 147 miguel_salas (monitoring rows kept: 0)
+- 15 marcos_atkins (monitoring rows kept: 0)
+- 162 tammy_moran (monitoring rows kept: 0)
 - 172 donald_starks (monitoring rows kept: 0)
 - 199 james_parker (monitoring rows kept: 0)
 - 207 dwayne_martin (monitoring rows kept: 0)
@@ -253,10 +256,19 @@ policy_name: parenchymal
 - 467 marcella_lejeune (monitoring rows kept: 0)
 - 468 shani_pless (monitoring rows kept: 0)
 - 485 jennie_wilson (monitoring rows kept: 0)
+- 495 yong_khoury (monitoring rows kept: 0)
 - 62 raymond_smith (monitoring rows kept: 0)
 - 79 carl_osburn (monitoring rows kept: 0)
 
 ## Per-Exam Selection
+
+### Exam 1 - andre_clark
+
+Selected series:
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (201_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
+
+Missing required phase buckets: pre_contrast, premonitoring, monitoring, arterial
+
 
 ### Exam 100 - lacy_kirk
 
@@ -294,8 +306,9 @@ Selected series:
 - Add Arteriosa 2,00 Br40 Q3 Matrix 512 (601_add_arteriosa_2_00_br40_q3_matrix_512) [phase=arterial]
 - Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (701_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
-Missing required phase buckets: pre_contrast, venous
+Missing required phase buckets: pre_contrast
 
 
 ### Exam 111 - salvador_doyle
@@ -353,8 +366,7 @@ Selected series:
 - Monitoring 5,00 Br36 Matrix 512 (601_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Add Basale 2,00 Br40 Q3 Matrix 512 (401_add_basale_2_00_br40_q3_matrix_512) [phase=pre_contrast]
 - Premonitoring 5,00 Br36 Matrix 512 (501_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
-
-Missing required phase buckets: venous
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (801_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
 
 ### Exam 135 - dennis_king
@@ -406,6 +418,14 @@ Selected series:
 Missing required phase buckets: premonitoring, monitoring
 
 
+### Exam 147 - miguel_salas
+
+No eligible series was identified.
+
+### Exam 15 - marcos_atkins
+
+No eligible series was identified.
+
 ### Exam 155 - erin_hopper
 
 Selected series:
@@ -443,8 +463,7 @@ Selected series:
 - 601_monitoring_5_00_br36_matrix_512 (601_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - 401_add_basale_2_00_br40_q3_matrix_512 (401_add_basale_2_00_br40_q3_matrix_512) [phase=pre_contrast]
 - 501_premonitoring_5_00_br36_matrix_512 (501_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
-
-Missing required phase buckets: venous
+- 801_toradd_venosa_2_00_br40_q3_matrix_512 (801_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
 
 ### Exam 160 - irene_richey
@@ -456,6 +475,10 @@ Selected series:
 - Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 - BODY Venosa 2,00 Br36 Q3 cor Matrix 512 (601_body_venosa_2_00_br36_q3_cor_matrix_512) [phase=venous]
 
+
+### Exam 162 - tammy_moran
+
+No eligible series was identified.
 
 ### Exam 163 - cathryn_waters
 
@@ -471,9 +494,10 @@ Missing required phase buckets: premonitoring, monitoring
 
 Selected series:
 - Arteriosa  2.0  I30f  3 (16_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - Venosa  2.0  I30f  3 (17_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 172 - donald_starks
@@ -484,63 +508,70 @@ No eligible series was identified.
 
 Selected series:
 - 19_arteriosa__2_0__i30f__3 (19_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - 20_venosa__2_0__i30f__3 (20_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 180 - dolores_arellano
 
 Selected series:
 - 13_arteriosa__2_0__i30f__3 (13_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - 14_venosa__2_0__i30f__3 (14_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 181 - celeste_fleeger
 
 Selected series:
 - 13_arteriosa__2_0__i30f__3 (13_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - 14_venosa__2_0__i30f__3 (14_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 182 - rosalind_west
 
 Selected series:
 - 10_arteriosa__2_0__i30f__3 (10_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - 11_venosa__2_0__i30f__3 (11_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 183 - george_smith
 
 Selected series:
 - 12_arteriosa__2_0__i30f__3 (12_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - 13_venosa__2_0__i30f__3 (13_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 19 - jefferey_wise
 
 Selected series:
 - 9_arteriosa__2_0__i30f__3 (9_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - 10_venosa__2_0__i30f__3 (10_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 197 - wilma_solis
 
 Selected series:
 - 9_arteriosa__2_0__i30f__3 (9_arteriosa__2_0__i30f__3) [phase=arterial]
+- 2_addome__2_0__i30f__3 (2_addome__2_0__i30f__3) [phase=pre_contrast]
 - 10_venosa__2_0__i30f__3 (10_venosa__2_0__i30f__3) [phase=venous]
 
-Missing required phase buckets: pre_contrast, premonitoring, monitoring
+Missing required phase buckets: premonitoring, monitoring
 
 
 ### Exam 199 - james_parker
@@ -636,8 +667,7 @@ Selected series:
 - Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Add Basale 2,00 Br40 Q3 Matrix 512 (201_add_basale_2_00_br40_q3_matrix_512) [phase=pre_contrast]
 - Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
-
-Missing required phase buckets: venous
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (601_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
 
 ### Exam 23 - john_crissman
@@ -657,8 +687,7 @@ Selected series:
 - Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Add Basale 2,00 Br40 Q3 Matrix 512 (201_add_basale_2_00_br40_q3_matrix_512) [phase=pre_contrast]
 - Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
-
-Missing required phase buckets: venous
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (601_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
 
 ### Exam 231 - kevin_armstrong
@@ -773,8 +802,9 @@ Selected series:
 - Add Arteriosa 2,00 Br40 Q3 Matrix 512 (601_add_arteriosa_2_00_br40_q3_matrix_512) [phase=arterial]
 - Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (701_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
-Missing required phase buckets: pre_contrast, venous
+Missing required phase buckets: pre_contrast
 
 
 ### Exam 294 - julian_thomas
@@ -938,8 +968,7 @@ Selected series:
 - Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Add Basale 2,00 Br40 Q3 Matrix 512 (201_add_basale_2_00_br40_q3_matrix_512) [phase=pre_contrast]
 - Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
-
-Missing required phase buckets: venous
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (601_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
 
 ### Exam 340 - christopher_lampert
@@ -1009,8 +1038,7 @@ Selected series:
 - Monitoring 5,00 Br36 Matrix 512 (601_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Add Basale 2,00 Br40 Q3 Matrix 512 (401_add_basale_2_00_br40_q3_matrix_512) [phase=pre_contrast]
 - Premonitoring 5,00 Br36 Matrix 512 (501_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
-
-Missing required phase buckets: venous
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (801_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
 
 ### Exam 369 - hattie_robinson
@@ -1330,6 +1358,14 @@ Selected series:
 Missing required phase buckets: premonitoring, monitoring
 
 
+### Exam 460 - andrea_clark
+
+Selected series:
+- TorAdd Venosa 2,00 Qr40 Q3 Matrix 512 SPP_ME70 (401_toradd_venosa_2_00_qr40_q3_matrix_512_spp_me70) [phase=venous]
+
+Missing required phase buckets: pre_contrast, premonitoring, monitoring, arterial
+
+
 ### Exam 461 - earl_delancey
 
 Selected series:
@@ -1452,6 +1488,10 @@ Selected series:
 Missing required phase buckets: premonitoring, monitoring
 
 
+### Exam 495 - yong_khoury
+
+No eligible series was identified.
+
 ### Exam 496 - lawrence_washam
 
 Selected series:
@@ -1548,8 +1588,9 @@ Selected series:
 - Add Arteriosa 2,00 Br40 Q3 Matrix 512 (601_add_arteriosa_2_00_br40_q3_matrix_512) [phase=arterial]
 - Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
+- TorAdd Venosa 2,00 Br40 Q3 Matrix 512 (701_toradd_venosa_2_00_br40_q3_matrix_512) [phase=venous]
 
-Missing required phase buckets: pre_contrast, venous
+Missing required phase buckets: pre_contrast
 
 
 ### Exam 62 - raymond_smith

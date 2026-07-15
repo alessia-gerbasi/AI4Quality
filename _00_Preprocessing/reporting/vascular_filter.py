@@ -336,13 +336,27 @@ def _select_series(retained_df: pd.DataFrame, rules: dict[str, Any]) -> tuple[pd
     keep_additional_distinct_names = bool(rules.get("keep_additional_distinct_names", True))
     keep_one_per_additional_phase = bool(rules.get("keep_one_per_additional_phase", False))
     select_one_best_remaining = bool(rules.get("select_one_best_remaining", False))
+    keep_additional_name_patterns: list[str] = [
+        str(p).lower() for p in rules.get("keep_additional_name_patterns", [])
+    ]
 
     work_df = retained_df.copy()
     if group_by_phase:
         work_df["_phase_key"] = work_df.apply(lambda row: _classify_named_phase(row, rules), axis=1)
         work_df = _apply_phase_policy_filters(work_df, rules)
     else:
-        work_df["_phase_key"] = ""
+        # Even without full phase grouping, tag monitoring/premonitoring/aorta from series text
+        # so required_phase_buckets matching works for those special series.
+        def _support_phase_key(row: pd.Series) -> str:
+            text = _row_haystack(row, ["phase_name", "series_name", "series_folder"])
+            if "aorta" in text:
+                return "aorta"
+            if "premonitor" in text:
+                return "premonitoring"
+            if "monitor" in text:
+                return "monitoring"
+            return ""
+        work_df["_phase_key"] = work_df.apply(_support_phase_key, axis=1)
 
     output_rows: list[dict[str, Any]] = []
     exam_reports: list[dict[str, Any]] = []
@@ -362,7 +376,7 @@ def _select_series(retained_df: pd.DataFrame, rules: dict[str, Any]) -> tuple[pd
                 "row": row,
                 "score_tuple": scored["score_tuple"],
                 "details": scored["details"],
-                "phase_key": str(row.get("_phase_key", "")) if group_by_phase else "",
+                "phase_key": str(row.get("_phase_key", "")),
                 "name_key": _normalize_series_name(row.get("series_name")),
             })
 
@@ -391,6 +405,20 @@ def _select_series(retained_df: pd.DataFrame, rules: dict[str, Any]) -> tuple[pd
                     if series_path:
                         seen_paths.add(series_path)
                     selected_items.append(best)
+
+            # After the single best pick, also keep one best per extra name pattern (e.g. lung).
+            if keep_additional_name_patterns:
+                remaining = [item for item in additional_items
+                             if str(item["row"].get("series_path", "")) not in seen_paths]
+                for pattern in keep_additional_name_patterns:
+                    matches = [item for item in remaining
+                               if pattern in item["name_key"]]
+                    if matches:
+                        best_extra = min(matches, key=lambda item: item["score_tuple"])
+                        extra_path = str(best_extra["row"].get("series_path", ""))
+                        if extra_path:
+                            seen_paths.add(extra_path)
+                        selected_items.append(best_extra)
         elif keep_additional_distinct_names:
             grouped_by_name: dict[str, list[dict[str, Any]]] = {}
             for item in additional_items:

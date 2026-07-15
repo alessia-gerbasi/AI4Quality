@@ -80,6 +80,14 @@ def main() -> int:
         include_keywords=[k.lower() for k in cfg.selection["include_keywords"]],
         exclude_keywords=[k.lower() for k in cfg.selection["exclude_keywords"]],
         force_accept_keywords=[k.lower() for k in cfg.selection.get("force_accept_keywords", [])],
+        exclude_keyword_veto={
+            k.lower(): [v.lower() for v in vals]
+            for k, vals in cfg.selection.get("exclude_keyword_veto", {}).items()
+        },
+        procedure_specific_include_only={
+            k.upper(): [v.lower() for v in vals]
+            for k, vals in cfg.selection.get("procedure_specific_include_only", {}).items()
+        },
         precedence=str(cfg.selection["precedence"]).lower(),
     )
 

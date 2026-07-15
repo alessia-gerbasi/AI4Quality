@@ -10,6 +10,7 @@ exclude_monitoring: false
 keep_additional_distinct_names: false
 select_one_best_remaining: true
 required_phase_buckets:
+- aorta
 - premonitoring
 - monitoring
 allowed_procedure_codes:
@@ -27,6 +28,7 @@ allowed_procedure_codes:
 - TACCUO
 - TACAAR
 - TACAGA
+- TACTON
 output_csv: retained_series_vascular_filtered.csv
 summary_file: retained_series_vascular_filtered_summary.md
 monitoring:
@@ -159,14 +161,15 @@ policy_name: vascular
 
 ## Selection Results
 
-- Exams processed: 207
-- Groups processed: 207
-- Selected vascular series: 78
-- Monitoring rows kept: 0
-- Exams without an eligible vascular series: 129
+- Exams processed: 213
+- Groups processed: 213
+- Selected vascular series: 137
+- Monitoring rows kept: 43
+- Exams without an eligible vascular series: 131
 
 ## Exams With No Eligible Vascular Series
 
+- 1 andre_clark (monitoring rows kept: 0)
 - 100 lacy_kirk (monitoring rows kept: 0)
 - 103 ryan_hanna (monitoring rows kept: 0)
 - 107 jennifer_clouston (monitoring rows kept: 0)
@@ -266,6 +269,7 @@ policy_name: vascular
 - 455 beverly_reiland (monitoring rows kept: 0)
 - 456 michael_bailey (monitoring rows kept: 0)
 - 458 janet_branstetter (monitoring rows kept: 0)
+- 460 andrea_clark (monitoring rows kept: 0)
 - 461 earl_delancey (monitoring rows kept: 0)
 - 464 karin_bryon (monitoring rows kept: 0)
 - 469 robert_ouellette (monitoring rows kept: 0)
@@ -299,6 +303,10 @@ policy_name: vascular
 
 ## Per-Exam Selection
 
+### Exam 1 - andre_clark
+
+No eligible series was identified.
+
 ### Exam 100 - lacy_kirk
 
 No eligible series was identified.
@@ -308,7 +316,7 @@ No eligible series was identified.
 Selected series:
 - CCT HR Heart  0,20 Bv72 Q4 -160ms Matrix 1024 (601_cct_hr_heart__0_20_bv72_q4_-160ms_matrix_1024)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 103 - ryan_hanna
@@ -320,7 +328,7 @@ No eligible series was identified.
 Selected series:
 - 20_ds_coradseq__0_6__i26f__2__bestdiast_83_% (20_ds_coradseq__0_6__i26f__2__bestdiast_83_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 107 - jennifer_clouston
@@ -330,7 +338,8 @@ No eligible series was identified.
 ### Exam 109 - james_lanning
 
 Selected series:
-- Angio Aorta  0.75  I26f  3 (10_angio_aorta__0_75__i26f__3)
+- Torace  2.0  I30f  3 (2_torace__2_0__i30f__3)
+- Angio Aorta  0.75  I26f  3 (10_angio_aorta__0_75__i26f__3) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring
 
@@ -344,7 +353,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 72 % (9_ds_coradseq__0_6__i26f__2__bestdiast_72_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 111 - salvador_doyle
@@ -354,7 +363,8 @@ No eligible series was identified.
 ### Exam 113 - mary_robinson
 
 Selected series:
-- Angio Aorta  1.0  I26f  3 (13_angio_aorta__1_0__i26f__3)
+- Addome  2.0  I30f  3 (2_addome__2_0__i30f__3)
+- Angio Aorta  1.0  I26f  3 (13_angio_aorta__1_0__i26f__3) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring
 
@@ -364,7 +374,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - Addome  2.0  I30f  3 (2_addome__2_0__i30f__3)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 117 - helen_gaskill
@@ -380,7 +390,7 @@ No eligible series was identified.
 Selected series:
 - SMDC  2.0  I30f  3 (2_smdc__2_0__i30f__3)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 127 - vicky_sutton
@@ -392,7 +402,7 @@ No eligible series was identified.
 Selected series:
 - SMDC TSA  1.5  I26f  4 (4_smdc_tsa__1_5__i26f__4)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 13 - rachel_edwards
@@ -419,12 +429,28 @@ No eligible series was identified.
 
 No eligible series was identified.
 
+### Exam 147 - miguel_salas
+
+Selected series:
+- Arteriosa  2.0  I30f  3 (11_arteriosa__2_0__i30f__3)
+
+Missing required phase buckets: aorta, premonitoring, monitoring
+
+
+### Exam 15 - marcos_atkins
+
+Selected series:
+- 12_arteriosa__2_0__i30f__3 (12_arteriosa__2_0__i30f__3)
+
+Missing required phase buckets: aorta, premonitoring, monitoring
+
+
 ### Exam 154 - william_smith
 
 Selected series:
 - 17_ds_coradseq__0_6__i26f__2__bestdiast_72_% (17_ds_coradseq__0_6__i26f__2__bestdiast_72_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 155 - erin_hopper
@@ -447,6 +473,14 @@ No eligible series was identified.
 
 No eligible series was identified.
 
+### Exam 162 - tammy_moran
+
+Selected series:
+- 701_add_arteriosa_2_00_br40_q3_matrix_512 (701_add_arteriosa_2_00_br40_q3_matrix_512)
+
+Missing required phase buckets: aorta, premonitoring, monitoring
+
+
 ### Exam 163 - cathryn_waters
 
 No eligible series was identified.
@@ -460,7 +494,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 70 % (8_ds_coradseq__0_6__i26f__2__bestdiast_70_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 171 - frank_reynolds
@@ -468,15 +502,17 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - 15_ds_coradseq__0_6__i26f__2__bestdiast_76_% (15_ds_coradseq__0_6__i26f__2__bestdiast_76_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 172 - donald_starks
 
 Selected series:
 - 601_corcta_uhr_spect_spi_0_20_bv48_q4_bestdiast_86%_matrix_512 (601_corcta_uhr_spect_spi_0_20_bv48_q4_bestdiast_86%_matrix_512)
+- 501_monitoring_5_00_br36_matrix_512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- 401_premonitoring_5_00_br36_matrix_512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 173 - carmen_skillings
@@ -504,7 +540,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 75 % (9_ds_coradseq__0_6__i26f__2__bestdiast_75_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 19 - jefferey_wise
@@ -516,7 +552,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 75 % (13_ds_coradseq__0_6__i26f__2__bestdiast_75_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 197 - wilma_solis
@@ -527,8 +563,10 @@ No eligible series was identified.
 
 Selected series:
 - CorCTA UHR Spect Seq 0,20 Bv48 Q4 BestDiast 74% Matrix 512 (601_corcta_uhr_spect_seq_0_20_bv48_q4_bestdiast_74%_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 200 - leon_harkins
@@ -544,7 +582,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 73 % (15_ds_coradseq__0_6__i26f__2__bestdiast_73_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 203 - valentin_graham
@@ -552,15 +590,17 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 74 % (27_ds_coradseq__0_6__i26f__2__bestdiast_74_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 207 - dwayne_martin
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512)
+- Arti Inf 2,00 Qr40 Q4 Matrix 512 (401_arti_inf_2_00_qr40_q4_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (301_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 209 - jo_clark
@@ -568,7 +608,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 71 % (9_ds_coradseq__0_6__i26f__2__bestdiast_71_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 212 - jason_merritt
@@ -591,8 +631,10 @@ No eligible series was identified.
 
 Selected series:
 - CCT HR Function 1,50 Bv48 Q4 0% - 90% Matrix 256 (601_cct_hr_function_1_50_bv48_q4_0%_-_90%_matrix_256)
+- Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 224 - roger_beverly
@@ -600,7 +642,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - Addome  2.0  I30f  3 (2_addome__2_0__i30f__3)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 225 - lewis_merrill
@@ -612,7 +654,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 72 % (9_ds_coradseq__0_6__i26f__2__bestdiast_72_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 228 - michael_smith
@@ -638,9 +680,11 @@ No eligible series was identified.
 ### Exam 24 - frances_erlandson
 
 Selected series:
-- CorCTA SEQ Lung 1,00 Bl60 Q4 BestDiast 75% Matrix 768 (601_corcta_seq_lung_1_00_bl60_q4_bestdiast_75%_matrix_768)
+- CorCTA SEQ Diast 0,40 Bv48 Q4 BestDiast 76% Matrix 512 (601_corcta_seq_diast_0_40_bv48_q4_bestdiast_76%_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 240 - anita_brown
@@ -656,7 +700,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 69 % (8_ds_coradseq__0_6__i26f__2__bestdiast_69_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 244 - miriam_dowden
@@ -671,36 +715,32 @@ No eligible series was identified.
 
 No eligible series was identified.
 
-### Exam 25 - cody_roy
-
-Selected series:
-- Massiccio  1.0  J70h  4 (2_massiccio__1_0__j70h__4)
-
-Missing required phase buckets: premonitoring, monitoring
-
-
 ### Exam 250 - sara_shuford
 
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 70 % (19_ds_coradseq__0_6__i26f__2__bestdiast_70_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 252 - robert_ward
 
 Selected series:
 - venosa 2,00 Br40 Q4 Matrix 512 (601_venosa_2_00_br40_q4_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 253 - teresa_rosenzweig
 
 Selected series:
 - venosa 1,00 Br40 Q4 Matrix 512 (601_venosa_1_00_br40_q4_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 254 - christopher_roman
@@ -708,7 +748,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 77 % (12_ds_coradseq__0_6__i26f__2__bestdiast_77_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 258 - joseph_troupe
@@ -720,7 +760,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 68 % (13_ds_coradseq__0_6__i26f__2__bestdiast_68_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 260 - michael_small
@@ -728,7 +768,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 74 % (17_ds_coradseq__0_6__i26f__2__bestdiast_74_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 263 - john_balling
@@ -736,7 +776,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorCTA  0.6  I26f  3  BestDiast 70 % (11_ds_corcta__0_6__i26f__3__bestdiast_70_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 267 - agustin_lee
@@ -744,7 +784,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 69 % (10_ds_coradseq__0_6__i26f__2__bestdiast_69_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 269 - deborah_scott
@@ -752,7 +792,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 76 % (11_ds_coradseq__0_6__i26f__2__bestdiast_76_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 284 - matthew_duncan
@@ -764,15 +804,16 @@ No eligible series was identified.
 Selected series:
 - DS_CorCTA  0.6  I26f  3  BestDiast 71 % (16_ds_corcta__0_6__i26f__3__bestdiast_71_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 289 - mabel_martinez
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512)
+- Basale 1,00 Br40 Q4 Matrix 512 (301_basale_1_00_br40_q4_matrix_512)
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, monitoring
 
 
 ### Exam 29 - earnest_prior
@@ -792,7 +833,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 72 % (9_ds_coradseq__0_6__i26f__2__bestdiast_72_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 299 - carroll_weise
@@ -802,9 +843,10 @@ No eligible series was identified.
 ### Exam 300 - juanita_loveland
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512)
-
-Missing required phase buckets: premonitoring, monitoring
+- [1] Distance Line Vasc (501__1__distance_line_vasc)
+- Aorta 0,80 Bv44 Q4 Matrix 768 (501_aorta_0_80_bv44_q4_matrix_768) [phase=aorta]
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
 
 ### Exam 304 - etta_williams
@@ -828,7 +870,7 @@ No eligible series was identified.
 Selected series:
 - [1] Distance Line Func 80% (601__1__distance_line_func_80%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 315 - elizabeth_sanders
@@ -840,7 +882,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 73 % (10_ds_coradseq__0_6__i26f__2__bestdiast_73_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 320 - lauren_perry
@@ -856,7 +898,7 @@ No eligible series was identified.
 Selected series:
 - SMDC  2.0  I30f  3 (2_smdc__2_0__i30f__3)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 329 - oscar_beierle
@@ -872,7 +914,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 77 % (16_ds_coradseq__0_6__i26f__2__bestdiast_77_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 331 - robert_bostwick
@@ -930,9 +972,11 @@ No eligible series was identified.
 ### Exam 372 - eric_mills
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512)
+- Basale 1,00 Br40 Q4 Matrix 512 (201_basale_1_00_br40_q4_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 373 - holly_wright
@@ -940,7 +984,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 73 % (14_ds_coradseq__0_6__i26f__2__bestdiast_73_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 374 - sandra_briseno
@@ -950,17 +994,19 @@ No eligible series was identified.
 ### Exam 375 - rachael_mullikin
 
 Selected series:
-- Aorta UHR 0,20 Bv60 Q4 Matrix 1024 (501_aorta_uhr_0_20_bv60_q4_matrix_1024)
-
-Missing required phase buckets: premonitoring, monitoring
+- Basale 1,50 Br40 Q3 Matrix 512 (201_basale_1_50_br40_q3_matrix_512)
+- Aorta UHR 0,20 Bv60 Q4 Matrix 1024 (501_aorta_uhr_0_20_bv60_q4_matrix_1024) [phase=aorta]
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
 
 ### Exam 377 - william_burden
 
 Selected series:
-- Aorta ECG Heart 1,00 Qr40 Q4 BestDiast 75% Matrix 512 SPP_ME70 (401_aorta_ecg_heart_1_00_qr40_q4_bestdiast_75%_matrix_512_spp_me70)
-
-Missing required phase buckets: premonitoring, monitoring
+- [10] Distance Line Vasc (401__10__distance_line_vasc)
+- Aorta ECG Heart 1,00 Qr40 Q4 BestDiast 75% Matrix 512 SPP_ME70 (401_aorta_ecg_heart_1_00_qr40_q4_bestdiast_75%_matrix_512_spp_me70) [phase=aorta]
+- Monitoring 5,00 Br36 Matrix 512 (301_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
 
 ### Exam 379 - richard_bolden
@@ -968,7 +1014,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 69 % (17_ds_coradseq__0_6__i26f__2__bestdiast_69_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 38 - mark_adams
@@ -996,7 +1042,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 70 % (11_ds_coradseq__0_6__i26f__2__bestdiast_70_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 389 - felix_evans
@@ -1019,12 +1065,20 @@ No eligible series was identified.
 
 No eligible series was identified.
 
+### Exam 4 - emma_kimmerle
+
+Selected series:
+- Angio Embolia  1.0  I26f  3 (8_angio_embolia__1_0__i26f__3)
+
+Missing required phase buckets: aorta, premonitoring, monitoring
+
+
 ### Exam 400 - juanita_gavin
 
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 67 % (9_ds_coradseq__0_6__i26f__2__bestdiast_67_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 402 - kenneth_jones
@@ -1040,7 +1094,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 73 % (9_ds_coradseq__0_6__i26f__2__bestdiast_73_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 410 - elizabeth_nichols
@@ -1051,14 +1105,17 @@ No eligible series was identified.
 
 Selected series:
 - CorCTA UHR Spect Spi 1,00 Bl60 Q4 BestDiast 78% Matrix 768 (701_corcta_uhr_spect_spi_1_00_bl60_q4_bestdiast_78%_matrix_768)
+- Monitoring 5,00 Br36 Matrix 512 (601_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 413 - margaret_cooper
 
 Selected series:
 - Venosa 2,00 Br40 Q4 iMAR Matrix 512 (601_venosa_2_00_br40_q4_imar_matrix_512)
+- Aorta ECG Heart 1,50 Bv36 Q4 BestDiast 68% Matrix 512 (501_aorta_ecg_heart_1_50_bv36_q4_bestdiast_68%_matrix_512) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring
 
@@ -1068,7 +1125,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 67 % (18_ds_coradseq__0_6__i26f__2__bestdiast_67_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 42 - robert_smith
@@ -1076,7 +1133,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 73 % (10_ds_coradseq__0_6__i26f__2__bestdiast_73_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 421 - thomas_king
@@ -1086,7 +1143,8 @@ No eligible series was identified.
 ### Exam 426 - pearlie_simms
 
 Selected series:
-- Angio Aorta  1.0  I26f  3 (21_angio_aorta__1_0__i26f__3)
+- Addome  2.0  I30f  3 (2_addome__2_0__i30f__3)
+- Angio Aorta  1.0  I26f  3 (21_angio_aorta__1_0__i26f__3) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring
 
@@ -1095,8 +1153,10 @@ Missing required phase buckets: premonitoring, monitoring
 
 Selected series:
 - CorCTA UHR Spect Seq 0,20 Bv48 Q4 BestDiast 75% Matrix 512 (601_corcta_uhr_spect_seq_0_20_bv48_q4_bestdiast_75%_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 433 - eddie_williams
@@ -1112,7 +1172,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 72 % (13_ds_coradseq__0_6__i26f__2__bestdiast_72_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 437 - crystal_perez
@@ -1120,7 +1180,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - SMDC TSA  0.75  I26f  4 (3_smdc_tsa__0_75__i26f__4)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 439 - marquis_aliberti
@@ -1132,7 +1192,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 73 % (11_ds_coradseq__0_6__i26f__2__bestdiast_73_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 441 - david_mayer
@@ -1147,16 +1207,19 @@ No eligible series was identified.
 
 Selected series:
 - CorCTA UHR Spect Seq 0,20 Bv48 Q4 BestDiast 74% Matrix 512 (601_corcta_uhr_spect_seq_0_20_bv48_q4_bestdiast_74%_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 451 - billy_estey
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512)
-
-Missing required phase buckets: premonitoring, monitoring
+- Basale 1,00 Br40 Q3 Matrix 512 (201_basale_1_00_br40_q3_matrix_512)
+- Aorta 1,00 Bv44 Q4 Matrix 768 (501_aorta_1_00_bv44_q4_matrix_768) [phase=aorta]
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
 
 ### Exam 452 - casey_venson
@@ -1183,11 +1246,17 @@ No eligible series was identified.
 
 Selected series:
 - CaSc Seq  3,00 Qr36 Q2 BestDiast 75% Matrix 512 (301_casc_seq__3_00_qr36_q2_bestdiast_75%_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (401_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 458 - janet_branstetter
+
+No eligible series was identified.
+
+### Exam 460 - andrea_clark
 
 No eligible series was identified.
 
@@ -1202,17 +1271,21 @@ No eligible series was identified.
 ### Exam 467 - marcella_lejeune
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512)
+- Basale 1,00 Br40 Q4 Matrix 512 (201_basale_1_00_br40_q4_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 468 - shani_pless
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512)
+- Angio Embolia 0,80 Bv44 Q4 Matrix 512 (501_angio_embolia_0_80_bv44_q4_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 469 - robert_ouellette
@@ -1240,7 +1313,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 75 % (11_ds_coradseq__0_6__i26f__2__bestdiast_75_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 478 - neil_mcdonald
@@ -1248,7 +1321,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - [1] Distance Line Coro  -200ms (601__1__distance_line_coro__-200ms)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 480 - mark_stratton
@@ -1268,15 +1341,16 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 76 % (14_ds_coradseq__0_6__i26f__2__bestdiast_76_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 485 - jennie_wilson
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512)
+- Monitoring 5,00 Br36 Matrix 512 (501_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta
 
 
 ### Exam 488 - pearline_dye
@@ -1284,12 +1358,20 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - SMDC TSA  1.0  I26f  4 (3_smdc_tsa__1_0__i26f__4)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 49 - martin_maclean
 
 No eligible series was identified.
+
+### Exam 495 - yong_khoury
+
+Selected series:
+- Arteriosa  2.0  I30f  3 (21_arteriosa__2_0__i30f__3)
+
+Missing required phase buckets: aorta, premonitoring, monitoring
+
 
 ### Exam 496 - lawrence_washam
 
@@ -1304,7 +1386,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 72 % (8_ds_coradseq__0_6__i26f__2__bestdiast_72_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 51 - michael_abela
@@ -1342,9 +1424,10 @@ No eligible series was identified.
 ### Exam 62 - raymond_smith
 
 Selected series:
-- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512)
-
-Missing required phase buckets: premonitoring, monitoring
+- Basale 1,00 Br40 Q3 Matrix 512 (201_basale_1_00_br40_q3_matrix_512)
+- Aorta 1,00 Bv44 Q4 cor Matrix 512 (501_aorta_1_00_bv44_q4_cor_matrix_512) [phase=aorta]
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
 
 ### Exam 64 - sharon_mineo
@@ -1356,7 +1439,7 @@ No eligible series was identified.
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 71 % (9_ds_coradseq__0_6__i26f__2__bestdiast_71_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 68 - geraldine_chan
@@ -1370,7 +1453,8 @@ No eligible series was identified.
 ### Exam 71 - myrtle_buchanan
 
 Selected series:
-- Angio Aorta  1.0  I26f  3 (11_angio_aorta__1_0__i26f__3)
+- smdc  2.0  I30f  3 (2_smdc__2_0__i30f__3)
+- Angio Aorta  1.0  I26f  3 (11_angio_aorta__1_0__i26f__3) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring
 
@@ -1382,7 +1466,8 @@ No eligible series was identified.
 ### Exam 76 - terrie_roach
 
 Selected series:
-- Angio Aorta  1.0  I26f  3 (13_angio_aorta__1_0__i26f__3)
+- TORACE  2.0  I30f  3 (2_torace__2_0__i30f__3)
+- Angio Aorta  1.0  I26f  3 (13_angio_aorta__1_0__i26f__3) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring
 
@@ -1391,8 +1476,9 @@ Missing required phase buckets: premonitoring, monitoring
 
 Selected series:
 - Venosa 1,00 Br40 Q3 Matrix 512 (601_venosa_1_00_br40_q3_matrix_512)
-
-Missing required phase buckets: premonitoring, monitoring
+- Aorta 0,80 Qr40 Q4 Matrix 512 SPP_ME55 (501_aorta_0_80_qr40_q4_matrix_512_spp_me55) [phase=aorta]
+- Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
+- Premonitoring 5,00 Br36 Matrix 512 (301_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
 
 
 ### Exam 81 - whitney_messenger
@@ -1410,7 +1496,8 @@ No eligible series was identified.
 ### Exam 88 - greg_langeness
 
 Selected series:
-- Angio Aorta  1.0  I26f  3 (9_angio_aorta__1_0__i26f__3)
+- TorAddome  2.0  I30f  3 (2_toraddome__2_0__i30f__3)
+- Angio Aorta  1.0  I26f  3 (9_angio_aorta__1_0__i26f__3) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring
 
@@ -1420,7 +1507,7 @@ Missing required phase buckets: premonitoring, monitoring
 Selected series:
 - DS_CorAdSeq  0.6  I26f  2  BestDiast 72 % (15_ds_coradseq__0_6__i26f__2__bestdiast_72_%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 90 - richard_walls
@@ -1432,7 +1519,7 @@ No eligible series was identified.
 Selected series:
 - Fl_CorCTA D  0.6  I26f  4  60% (11_fl_corcta_d__0_6__i26f__4__60%)
 
-Missing required phase buckets: premonitoring, monitoring
+Missing required phase buckets: aorta, premonitoring, monitoring
 
 
 ### Exam 94 - misty_price
