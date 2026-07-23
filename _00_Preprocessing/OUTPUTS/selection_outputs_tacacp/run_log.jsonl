@@ -1,0 +1,92 @@
+{"ts": "2026-07-20T14:52:22.904691Z", "level": "INFO", "event": "standalone_pipeline_start", "config": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/config/defaults.yaml", "input_root": "/data/data_bracco/CDI/TACACP/final_anonym_renamed", "procedure_code": "TACACP", "skip_excel_enrichment": true}
+{"ts": "2026-07-20T14:52:22.905120Z", "level": "INFO", "event": "scan_completed", "series_count": 0}
+{"ts": "2026-07-20T14:52:22.905212Z", "level": "INFO", "event": "enrichment_skipped", "enriched_count": 0, "metadata_issues": 0}
+{"ts": "2026-07-20T14:52:22.905393Z", "level": "INFO", "event": "selection_completed", "summary": {"total_series": 0, "status_counts": {}, "reason_counts": {}, "merge_counts": {}, "metadata_issue_count": 0}}
+{"ts": "2026-07-20T14:52:22.905494Z", "level": "INFO", "event": "collapsed_volumes_completed", "enabled": false, "groups_detected": 0, "groups_considered": 0, "volumes_written": 0, "volumes_skipped_existing": 0, "errors": 0}
+{"ts": "2026-07-20T14:54:02.084273Z", "level": "INFO", "event": "standalone_pipeline_start", "config": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/config/defaults.yaml", "input_root": "/data/data_bracco/CDI/TACACP/final_anonym_renamed", "procedure_code": "TACACP", "skip_excel_enrichment": true}
+{"ts": "2026-07-20T14:54:02.352262Z", "level": "INFO", "event": "scan_completed", "series_count": 152}
+{"ts": "2026-07-20T14:54:02.352494Z", "level": "INFO", "event": "enrichment_skipped", "enriched_count": 152, "metadata_issues": 0}
+{"ts": "2026-07-20T14:54:02.353801Z", "level": "INFO", "event": "selection_completed", "summary": {"total_series": 152, "status_counts": {"rejected": 59, "accepted": 93}, "reason_counts": {"matched_exclude_keyword": 59, "forced_keep_keyword": 83, "accepted_no_exclude_keyword": 10}, "merge_counts": {"single": 107, "merged_source": 45}, "metadata_issue_count": 0}}
+{"ts": "2026-07-20T14:54:02.353913Z", "level": "INFO", "event": "collapsed_volumes_completed", "enabled": false, "groups_detected": 0, "groups_considered": 0, "volumes_written": 0, "volumes_skipped_existing": 0, "errors": 0}
+{"ts": "2026-07-20T14:54:02.411672Z", "level": "INFO", "event": "unified_support_only_cts_excluded", "excluded_ct_count": 0, "excluded_cts": []}
+{"ts": "2026-07-20T14:54:02.411774Z", "level": "INFO", "event": "vascular_selection_completed", "exam_count": 12, "group_count": 12, "selected_vascular_count": 22, "monitoring_rows_kept": 10}
+{"ts": "2026-07-20T14:54:02.411864Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "10", "ct_name": "alesha_williams", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T14:54:02.411949Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "11", "ct_name": "alfredo_wood", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T14:54:02.412036Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "3", "ct_name": "richard_hodges", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T14:54:02.412117Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "6", "ct_name": "joseph_lee", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T14:54:02.412194Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "7", "ct_name": "diane_ashley", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T14:54:02.412275Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "9", "ct_name": "james_vargas", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T14:54:02.412351Z", "level": "INFO", "event": "parenchymal_selection_completed", "exam_count": 6, "group_count": 6, "selected_parenchymal_count": 0, "monitoring_rows_kept": 0}
+{"ts": "2026-07-20T14:54:02.412425Z", "level": "INFO", "event": "export_completed", "output_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp"}
+{"ts": "2026-07-20T14:54:02.412498Z", "level": "INFO", "event": "standalone_pipeline_end"}
+{"ts": "2026-07-20T15:05:55.913815Z", "level": "INFO", "event": "standalone_pipeline_start", "config": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/config/defaults.yaml", "input_root": "/data/data_bracco/CDI/TACACP/final_anonym_renamed", "procedure_code": "TACACP", "skip_excel_enrichment": true}
+{"ts": "2026-07-20T15:05:56.181153Z", "level": "INFO", "event": "scan_completed", "series_count": 152}
+{"ts": "2026-07-20T15:05:56.181396Z", "level": "INFO", "event": "enrichment_skipped", "enriched_count": 152, "metadata_issues": 0}
+{"ts": "2026-07-20T15:05:56.182670Z", "level": "INFO", "event": "selection_completed", "summary": {"total_series": 152, "status_counts": {"rejected": 59, "accepted": 93}, "reason_counts": {"matched_exclude_keyword": 59, "forced_keep_keyword": 83, "accepted_no_exclude_keyword": 10}, "merge_counts": {"single": 107, "merged_source": 45}, "metadata_issue_count": 0}}
+{"ts": "2026-07-20T15:05:56.182784Z", "level": "INFO", "event": "collapsed_volumes_completed", "enabled": false, "groups_detected": 0, "groups_considered": 0, "volumes_written": 0, "volumes_skipped_existing": 0, "errors": 0}
+{"ts": "2026-07-20T15:05:56.240620Z", "level": "INFO", "event": "unified_support_only_cts_excluded", "excluded_ct_count": 0, "excluded_cts": []}
+{"ts": "2026-07-20T15:05:56.240724Z", "level": "INFO", "event": "vascular_selection_completed", "exam_count": 12, "group_count": 12, "selected_vascular_count": 38, "monitoring_rows_kept": 10}
+{"ts": "2026-07-20T15:05:56.240809Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "10", "ct_name": "alesha_williams", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:05:56.240890Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "11", "ct_name": "alfredo_wood", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:05:56.240971Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "3", "ct_name": "richard_hodges", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:05:56.241046Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "6", "ct_name": "joseph_lee", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:05:56.241121Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "7", "ct_name": "diane_ashley", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:05:56.241199Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "9", "ct_name": "james_vargas", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:05:56.241274Z", "level": "INFO", "event": "parenchymal_selection_completed", "exam_count": 6, "group_count": 6, "selected_parenchymal_count": 0, "monitoring_rows_kept": 0}
+{"ts": "2026-07-20T15:05:56.241347Z", "level": "INFO", "event": "export_completed", "output_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp"}
+{"ts": "2026-07-20T15:05:56.241423Z", "level": "INFO", "event": "standalone_pipeline_end"}
+{"ts": "2026-07-20T15:06:51.315421Z", "level": "INFO", "event": "standalone_pipeline_start", "config": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/config/defaults.yaml", "input_root": "/data/data_bracco/CDI/TACACP/final_anonym_renamed", "procedure_code": "TACACP", "skip_excel_enrichment": true}
+{"ts": "2026-07-20T15:06:51.591618Z", "level": "INFO", "event": "scan_completed", "series_count": 152}
+{"ts": "2026-07-20T15:06:51.591906Z", "level": "INFO", "event": "enrichment_skipped", "enriched_count": 152, "metadata_issues": 0}
+{"ts": "2026-07-20T15:06:51.593312Z", "level": "INFO", "event": "selection_completed", "summary": {"total_series": 152, "status_counts": {"rejected": 59, "accepted": 93}, "reason_counts": {"matched_exclude_keyword": 59, "forced_keep_keyword": 83, "accepted_no_exclude_keyword": 10}, "merge_counts": {"single": 107, "merged_source": 45}, "metadata_issue_count": 0}}
+{"ts": "2026-07-20T15:06:51.593439Z", "level": "INFO", "event": "collapsed_volumes_completed", "enabled": false, "groups_detected": 0, "groups_considered": 0, "volumes_written": 0, "volumes_skipped_existing": 0, "errors": 0}
+{"ts": "2026-07-20T15:06:51.652384Z", "level": "INFO", "event": "unified_support_only_cts_excluded", "excluded_ct_count": 0, "excluded_cts": []}
+{"ts": "2026-07-20T15:06:51.652508Z", "level": "INFO", "event": "vascular_selection_completed", "exam_count": 12, "group_count": 12, "selected_vascular_count": 30, "monitoring_rows_kept": 10}
+{"ts": "2026-07-20T15:06:51.652599Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "10", "ct_name": "alesha_williams", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:06:51.652680Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "11", "ct_name": "alfredo_wood", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:06:51.652761Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "3", "ct_name": "richard_hodges", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:06:51.652840Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "6", "ct_name": "joseph_lee", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:06:51.652935Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "7", "ct_name": "diane_ashley", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:06:51.653010Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "9", "ct_name": "james_vargas", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:06:51.653088Z", "level": "INFO", "event": "parenchymal_selection_completed", "exam_count": 6, "group_count": 6, "selected_parenchymal_count": 0, "monitoring_rows_kept": 0}
+{"ts": "2026-07-20T15:06:51.653179Z", "level": "INFO", "event": "export_completed", "output_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp"}
+{"ts": "2026-07-20T15:06:51.653252Z", "level": "INFO", "event": "standalone_pipeline_end"}
+{"ts": "2026-07-20T15:12:55.589509Z", "level": "INFO", "event": "standalone_pipeline_start", "config": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/config/defaults.yaml", "input_root": "/data/data_bracco/CDI/TACACP/final_anonym_renamed", "procedure_code": "TACACP", "skip_excel_enrichment": true}
+{"ts": "2026-07-20T15:12:55.852395Z", "level": "INFO", "event": "scan_completed", "series_count": 152}
+{"ts": "2026-07-20T15:12:55.852631Z", "level": "INFO", "event": "enrichment_skipped", "enriched_count": 152, "metadata_issues": 0}
+{"ts": "2026-07-20T15:12:55.854009Z", "level": "INFO", "event": "selection_completed", "summary": {"total_series": 152, "status_counts": {"rejected": 59, "accepted": 93}, "reason_counts": {"matched_exclude_keyword": 59, "forced_keep_keyword": 83, "accepted_no_exclude_keyword": 10}, "merge_counts": {"single": 107, "merged_source": 45}, "metadata_issue_count": 0}}
+{"ts": "2026-07-20T15:12:55.854142Z", "level": "INFO", "event": "collapsed_volumes_completed", "enabled": false, "groups_detected": 0, "groups_considered": 0, "volumes_written": 0, "volumes_skipped_existing": 0, "errors": 0}
+{"ts": "2026-07-20T15:12:55.916390Z", "level": "INFO", "event": "unified_support_only_cts_excluded", "excluded_ct_count": 0, "excluded_cts": []}
+{"ts": "2026-07-20T15:12:55.916504Z", "level": "INFO", "event": "vascular_selection_no_eligible_series", "ct_id": "1", "ct_name": "ethel_harris", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.916632Z", "level": "INFO", "event": "vascular_selection_no_eligible_series", "ct_id": "12", "ct_name": "julius_dennis", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.916710Z", "level": "INFO", "event": "vascular_selection_no_eligible_series", "ct_id": "2", "ct_name": "brian_hall", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.916788Z", "level": "INFO", "event": "vascular_selection_no_eligible_series", "ct_id": "4", "ct_name": "john_palma", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.916863Z", "level": "INFO", "event": "vascular_selection_no_eligible_series", "ct_id": "5", "ct_name": "anthony_shoemaker", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.916947Z", "level": "INFO", "event": "vascular_selection_no_eligible_series", "ct_id": "7", "ct_name": "diane_ashley", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917032Z", "level": "INFO", "event": "vascular_selection_no_eligible_series", "ct_id": "8", "ct_name": "peter_gonzalez", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917115Z", "level": "INFO", "event": "vascular_selection_completed", "exam_count": 12, "group_count": 12, "selected_vascular_count": 10, "monitoring_rows_kept": 10}
+{"ts": "2026-07-20T15:12:55.917192Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "10", "ct_name": "alesha_williams", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917266Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "11", "ct_name": "alfredo_wood", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917339Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "3", "ct_name": "richard_hodges", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917416Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "6", "ct_name": "joseph_lee", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917488Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "7", "ct_name": "diane_ashley", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917560Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "9", "ct_name": "james_vargas", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:12:55.917633Z", "level": "INFO", "event": "parenchymal_selection_completed", "exam_count": 6, "group_count": 6, "selected_parenchymal_count": 0, "monitoring_rows_kept": 0}
+{"ts": "2026-07-20T15:12:55.917706Z", "level": "INFO", "event": "export_completed", "output_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp"}
+{"ts": "2026-07-20T15:12:55.917782Z", "level": "INFO", "event": "standalone_pipeline_end"}
+{"ts": "2026-07-20T15:13:57.862634Z", "level": "INFO", "event": "standalone_pipeline_start", "config": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/config/defaults.yaml", "input_root": "/data/data_bracco/CDI/TACACP/final_anonym_renamed", "procedure_code": "TACACP", "skip_excel_enrichment": true}
+{"ts": "2026-07-20T15:13:58.136690Z", "level": "INFO", "event": "scan_completed", "series_count": 152}
+{"ts": "2026-07-20T15:13:58.136938Z", "level": "INFO", "event": "enrichment_skipped", "enriched_count": 152, "metadata_issues": 0}
+{"ts": "2026-07-20T15:13:58.138251Z", "level": "INFO", "event": "selection_completed", "summary": {"total_series": 152, "status_counts": {"rejected": 59, "accepted": 93}, "reason_counts": {"matched_exclude_keyword": 59, "forced_keep_keyword": 83, "accepted_no_exclude_keyword": 10}, "merge_counts": {"single": 107, "merged_source": 45}, "metadata_issue_count": 0}}
+{"ts": "2026-07-20T15:13:58.138372Z", "level": "INFO", "event": "collapsed_volumes_completed", "enabled": false, "groups_detected": 0, "groups_considered": 0, "volumes_written": 0, "volumes_skipped_existing": 0, "errors": 0}
+{"ts": "2026-07-20T15:13:58.196532Z", "level": "INFO", "event": "unified_support_only_cts_excluded", "excluded_ct_count": 0, "excluded_cts": []}
+{"ts": "2026-07-20T15:13:58.196638Z", "level": "INFO", "event": "vascular_selection_completed", "exam_count": 12, "group_count": 12, "selected_vascular_count": 22, "monitoring_rows_kept": 10}
+{"ts": "2026-07-20T15:13:58.196734Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "10", "ct_name": "alesha_williams", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:13:58.196819Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "11", "ct_name": "alfredo_wood", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:13:58.196901Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "3", "ct_name": "richard_hodges", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:13:58.196983Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "6", "ct_name": "joseph_lee", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:13:58.197061Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "7", "ct_name": "diane_ashley", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:13:58.197135Z", "level": "INFO", "event": "parenchymal_selection_no_eligible_series", "ct_id": "9", "ct_name": "james_vargas", "phase": null, "monitoring_rows": 0}
+{"ts": "2026-07-20T15:13:58.197211Z", "level": "INFO", "event": "parenchymal_selection_completed", "exam_count": 6, "group_count": 6, "selected_parenchymal_count": 0, "monitoring_rows_kept": 0}
+{"ts": "2026-07-20T15:13:58.197292Z", "level": "INFO", "event": "export_completed", "output_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp"}
+{"ts": "2026-07-20T15:13:58.197362Z", "level": "INFO", "event": "standalone_pipeline_end"}

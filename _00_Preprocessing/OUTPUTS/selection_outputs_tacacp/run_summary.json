@@ -1,0 +1,19 @@
+[
+  {
+    "total_series":152,
+    "status_counts":{
+      "rejected":59,
+      "accepted":93
+    },
+    "reason_counts":{
+      "matched_exclude_keyword":59,
+      "forced_keep_keyword":83,
+      "accepted_no_exclude_keyword":10
+    },
+    "merge_counts":{
+      "single":107,
+      "merged_source":45
+    },
+    "metadata_issue_count":0
+  }
+]

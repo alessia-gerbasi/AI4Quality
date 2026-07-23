@@ -442,6 +442,25 @@ def _select_series(retained_df: pd.DataFrame, rules: dict[str, Any]) -> tuple[pd
                 seen_paths.add(series_path)
                 selected_items.append(best)
 
+        # Apply extra name-pattern keeps also when select_one_best_remaining is disabled.
+        if keep_additional_name_patterns and not select_one_best_remaining:
+            remaining = [
+                item
+                for item in additional_items
+                if str(item["row"].get("series_path", "")) not in seen_paths
+            ]
+            for pattern in keep_additional_name_patterns:
+                matches = [item for item in remaining if pattern in item["name_key"]]
+                if not matches:
+                    continue
+                best_extra = min(matches, key=lambda item: item["score_tuple"])
+                extra_path = str(best_extra["row"].get("series_path", ""))
+                if extra_path and extra_path in seen_paths:
+                    continue
+                if extra_path:
+                    seen_paths.add(extra_path)
+                selected_items.append(best_extra)
+
         if not selected_items:
             no_eligible_exams.append({"ct_id": group_value, "ct_name": ct_name, "phase_key": None, "monitoring_count": 0})
 

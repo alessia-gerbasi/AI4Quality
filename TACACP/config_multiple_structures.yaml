@@ -1,0 +1,38 @@
+# Configuration for segmenting multiple structures
+# This is an example configuration for segmenting multiple anatomical structures
+
+input_dir: /data/data_bracco/RSNApe/RSNApe
+output_dir: null
+
+# Multiple structures
+structures:
+  - skin
+  - aorta
+  - pulmonary_artery
+  - heart
+  - lung_upper_lobe_left
+  - lung_lower_lobe_left
+  - lung_upper_lobe_right
+  - lung_lower_lobe_right
+
+input_filename: CT.nii.gz
+
+# Use full resolution for better accuracy
+model: 3d_fullres
+
+# GPU for faster processing (requires CUDA)
+device: gpu
+
+# CUDA device ID - set to the GPU you want to use
+# Options: 0 (cuda:0), 1 (cuda:1), 2 (cuda:2), 3 (cuda:3), etc.
+# Set to null to use default GPU
+device_id: 3
+
+# Not using fast mode for better quality
+fast: false
+
+# Skip folders where outputs already exist
+skip_existing: true
+
+# Export label statistics
+export_label_stats: false

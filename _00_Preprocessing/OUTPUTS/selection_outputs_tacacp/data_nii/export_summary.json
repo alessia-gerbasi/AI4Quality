@@ -1,0 +1,43 @@
+{
+  "csv_path": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp/retained_series_unified_filtered.csv",
+  "output_root": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp/data_nii",
+  "selected_count": 5,
+  "dry_run": true,
+  "selected_examples": [
+    {
+      "ct_folder": "TACACP_1_ethel_harris",
+      "series_folder": "11_angio_embolia__1_0__i26f__3",
+      "series_name": "Angio Embolia  1.0  I26f  3",
+      "series_path": "/data/data_bracco/CDI/TACACP/final_anonym_renamed/TACACP_1_ethel_harris/studyinstanceuid/11_angio_embolia__1_0__i26f__3",
+      "output_series_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp/data_nii/TACACP_1_ethel_harris/11_angio_embolia__1_0__i26f__3"
+    },
+    {
+      "ct_folder": "TACACP_2_brian_hall",
+      "series_folder": "10_angio_embolia__1_0__i26f__3",
+      "series_name": "Angio Embolia  1.0  I26f  3",
+      "series_path": "/data/data_bracco/CDI/TACACP/final_anonym_renamed/TACACP_2_brian_hall/studyinstanceuid/10_angio_embolia__1_0__i26f__3",
+      "output_series_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp/data_nii/TACACP_2_brian_hall/10_angio_embolia__1_0__i26f__3"
+    },
+    {
+      "ct_folder": "TACACP_3_richard_hodges",
+      "series_folder": "901_angio_embolia_0_80_bv44_q4_matrix_768",
+      "series_name": "Angio Embolia 0,80 Bv44 Q4 Matrix 768",
+      "series_path": "/data/data_bracco/CDI/TACACP/final_anonym_renamed/TACACP_3_richard_hodges/studyinstanceuid/901_angio_embolia_0_80_bv44_q4_matrix_768",
+      "output_series_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp/data_nii/TACACP_3_richard_hodges/901_angio_embolia_0_80_bv44_q4_matrix_768"
+    },
+    {
+      "ct_folder": "TACACP_4_john_palma",
+      "series_folder": "8_angio_embolia__1_0__i26f__3",
+      "series_name": "Angio Embolia  1.0  I26f  3",
+      "series_path": "/data/data_bracco/CDI/TACACP/final_anonym_renamed/TACACP_4_john_palma/studyinstanceuid/8_angio_embolia__1_0__i26f__3",
+      "output_series_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp/data_nii/TACACP_4_john_palma/8_angio_embolia__1_0__i26f__3"
+    },
+    {
+      "ct_folder": "TACACP_5_anthony_shoemaker",
+      "series_folder": "9_angio_embolia__1_0__i26f__3",
+      "series_name": "Angio Embolia  1.0  I26f  3",
+      "series_path": "/data/data_bracco/CDI/TACACP/final_anonym_renamed/TACACP_5_anthony_shoemaker/studyinstanceuid/9_angio_embolia__1_0__i26f__3",
+      "output_series_dir": "/data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/selection_outputs_tacacp/data_nii/TACACP_5_anthony_shoemaker/9_angio_embolia__1_0__i26f__3"
+    }
+  ]
+}
