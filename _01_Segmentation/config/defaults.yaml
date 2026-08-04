@@ -1,0 +1,40 @@
+# ── Input ─────────────────────────────────────────────────────────────────────
+csv_path: /data/alessia.gerbasi/AI4Quality/_00_Preprocessing/OUTPUTS/retained_series_unified_filtered.csv
+
+# ── Output ────────────────────────────────────────────────────────────────────
+output_root: /data/alessia.gerbasi/DATA/CDI_NEXO_072026/2_nii
+
+# ── Compute ───────────────────────────────────────────────────────────────────
+# device: gpu | cpu | gpu:0 | gpu:1 ... (cuda:N is also accepted and auto-converted)
+device: cuda:3
+device_id: null          # set to an integer (0,1,2...) to pin a specific GPU
+fast_mode: false          # true = 3 mm model (~3-4x faster); false = 1.5 mm full-res
+body_seg: true           # crop to body region before segmentation — reduces voxels processed
+
+# ── Run control ───────────────────────────────────────────────────────────────
+# How to handle already-processed series:
+#   skip_existing=true, overwrite=false  → skip completed series            (default)
+#   skip_existing=false, overwrite=false → rerun segmentation, keep CT.nii  (--reprocess)
+#   skip_existing=false, overwrite=true  → delete everything and redo        (--overwrite)
+skip_existing: true
+overwrite: false
+
+# ── Test mode ─────────────────────────────────────────────────────────────────
+test_mode: false
+test_ct_ids: []          # e.g. [1, 11, 17] – if empty and test_mode true, uses test_max_n
+test_max_n: 3            # number of series to process when test_mode true
+
+# ── DICOM conversion ──────────────────────────────────────────────────────────
+# Order in which converters are tried; remove entries to disable
+dicom_convert_fallback_order:
+  - dcm2niix
+  - dicom2nifti
+  - simpleitk
+
+# ── Segmentation ──────────────────────────────────────────────────────────────
+licensed_tasks_enabled: true   # set false to skip heartchambers_highres and coronary_arteries
+save_phase_json: true          # run totalseg_get_phase and save phase.json
+save_sanity_png: true          # save sanity_check.png with CT slice + segmentation overlay
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+log_file: /data/alessia.gerbasi/AI4Quality/_01_Segmentation/run_log.jsonl

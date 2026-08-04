@@ -132,6 +132,14 @@ def _drop_support_only_cts(df: pd.DataFrame, excluded_cts: pd.DataFrame) -> tupl
     return kept, excluded_cts
 
 
+def _drop_premonitoring_from_unified(df: pd.DataFrame) -> pd.DataFrame:
+    """Remove premonitoring rows from unified export output."""
+    if df.empty or "CT_type" not in df.columns:
+        return df
+    kept = df[df["CT_type"].astype(str).str.lower() != "premonitoring"].copy()
+    return kept.reset_index(drop=True)
+
+
 def export_outputs(
     output_dir: str,
     decision_rows: list[dict],
@@ -193,6 +201,7 @@ def export_outputs(
             if "_phase_key" in combined_df.columns:
                 combined_df = combined_df.drop(columns=["_phase_key"])
             combined_df = _collapse_unified_rows(combined_df)
+            combined_df = _drop_premonitoring_from_unified(combined_df)
             combined_df, excluded_cts = _drop_support_only_cts(combined_df, excluded_support_only_cts)
             sort_cols = [c for c in ["ct_id", "CT_type", "series_name", "acquisition_time"] if c in combined_df.columns]
             if sort_cols:

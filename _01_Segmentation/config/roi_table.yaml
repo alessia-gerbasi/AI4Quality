@@ -1,0 +1,125 @@
+# ROI table: procedure code → structures to segment per phase
+#
+# arteriosa: segment when phase_name == "arteriosa"
+# venosa:    segment when phase_name == "venosa"
+# monitoring/basale/empty/other: segment union of arteriosa + venosa
+#
+# Values must be canonical TotalSegmentator label names.
+# "no" or empty list means nothing to segment for that phase.
+
+TACPEC:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
+
+TACCOR:
+  arteriosa: [coronary_arteries]
+  venosa: []
+
+TACPEM:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
+
+TACTCG:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
+
+TACAAO:
+  arteriosa: [aorta]
+  venosa: []
+
+TACAAT:
+  arteriosa: [aorta]
+  venosa: []
+
+TACCRG:
+  arteriosa: [coronary_arteries]
+  venosa: []
+
+TACADC:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
+
+TACBAC:
+  arteriosa: []
+  venosa: [kidney_left, kidney_right]
+
+TACADI:
+  arteriosa: [aorta]
+  venosa: []
+
+TACATD:
+  arteriosa: [aorta]
+  venosa: []
+
+TACAGC:
+  arteriosa: [common_carotid_artery_right, common_carotid_artery_left]
+  venosa: []
+
+TACCRA:
+  arteriosa: [common_carotid_artery_right, common_carotid_artery_left]
+  venosa: []
+
+TACAGE:
+  arteriosa: [common_carotid_artery_right, common_carotid_artery_left]
+  venosa: []
+
+# iliopsoas expanded to left+right canonical names
+TACANC:
+  arteriosa: []
+  venosa: [iliopsoas_left, iliopsoas_right]
+
+TACAGI:
+  arteriosa: [aorta]
+  venosa: []
+
+TACADN:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
+
+TACTFA:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
+
+TACACP:
+  arteriosa: [pulmonary_artery]
+  venosa: []
+
+TACPEV:
+  arteriosa: []
+  venosa: [kidney_left, kidney_right]
+
+TACPEL:
+  arteriosa: []
+  venosa: [kidney_left, kidney_right]
+
+TACREC:
+  arteriosa: [kidney_left, kidney_right]
+  venosa: [kidney_left, kidney_right]
+
+TACCUO:
+  arteriosa: [aorta]
+  venosa: []
+
+TACAAR:
+  arteriosa: [aorta]
+  venosa: []
+
+TACAGA:
+  arteriosa: [aorta]
+  venosa: []
+
+TACATC:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
+
+TACREN:
+  arteriosa: [kidney_left, kidney_right]
+  venosa: [kidney_left, kidney_right]
+
+TACURO:
+  arteriosa: [kidney_left, kidney_right]
+  venosa: [kidney_left, kidney_right]
+
+TACTON:
+  arteriosa: [aorta]
+  venosa: [liver, spleen]
