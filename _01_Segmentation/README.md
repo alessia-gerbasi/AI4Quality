@@ -59,4 +59,30 @@ All good. Three modes are now available:
 
 You can also set the defaults permanently in config/defaults.yaml under `skip_existing` / `overwrite`.
 
-Made changes.
+
+---
+
+## TotalSegmentator algorithm routing
+
+Based on the current `task_router.py` logic:
+
+| Protocol | Phase | Slices | Task | Reason |
+|---|---|---|---|---|
+| TACCOR, TACCRG | any | ≥30 | `coronary_arteries` (licensed) | ECG-gated cardiac CT — dedicated model |
+| TACCOR, TACCRG | any | <30 | `coronary_arteries` (licensed) + **fast=True, no body crop** | monitoring bolus slice |
+| TACACP | any | ≥30 | `heartchambers_highres` (licensed) | only task with `pulmonary_artery` label |
+| TACACP | any | <30 | `heartchambers_highres` (licensed) + **fast=True, no body crop** | monitoring bolus slice |
+| All others (TACPEC, TACPEM, TACAAO, etc.) | arteriosa / neutral | ≥30 | `total --roi_subset aorta` (open) | full-res model trained on diverse routine CTs |
+| All others | arteriosa / neutral | <30 | `total --roi_subset aorta` + **fast=True, no body crop** | monitoring slice |
+| All others | venosa | ≥30 | `total --roi_subset liver spleen` (open) | standard parenchymal |
+| All others | venosa | <30 | `total --roi_subset liver spleen` + **fast=True** | monitoring slice |
+| TACREC, TACREN, TACURO | any | ≥30 | `total --roi_subset kidney_left kidney_right` (open) | |
+| TACAGC, TACCRA, TACAGE | any | ≥30 | `total --roi_subset common_carotid_artery_right common_carotid_artery_left` (open) | |
+| TACANC | venosa | ≥30 | `total --roi_subset iliopsoas_left iliopsoas_right` (open) | |
+| Any | any | 0 | **skipped** | no data |
+
+**Key decisions:**
+- `heartchambers_highres` is **only** used for `aorta` when the protocol is TACCOR/TACCRG (ECG-gated). For all other protocols (TACPEC, TACAAO, etc.) aorta uses the standard `total` task — it generalises better to routine 2mm CTs
+- `pulmonary_artery` always uses `heartchambers_highres` because no open task has that label
+- Small volumes (<30 slices, i.e. monitoring/bolus series) always force the 3mm fast model to reduce the minimum z-context needed
+

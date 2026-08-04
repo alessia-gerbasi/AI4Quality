@@ -31,8 +31,8 @@ def run_task_calls(
             output=str(series_out_dir),
             task=call.task,
             device=device,
-            fast=fast,
-            body_seg=body_seg,
+            fast=call.force_fast or fast,        # small volumes always use fast model
+            body_seg=False if call.force_no_body_seg else body_seg,
             ml=False,
             nr_thr_saving=1,
         )

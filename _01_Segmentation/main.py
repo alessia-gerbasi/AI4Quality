@@ -227,7 +227,12 @@ def process_series(row: pd.Series, cfg: dict[str, Any], mapper: RoiMapper) -> di
 
     # ── Determine structures ──────────────────────────────────────────────────
     structures = mapper.get_structures(procedure_code, phase_name)
-    task_calls = build_task_calls(structures, licensed_enabled=cfg.get("licensed_tasks_enabled", True))
+    task_calls = build_task_calls(
+        structures,
+        licensed_enabled=cfg.get("licensed_tasks_enabled", True),
+        procedure_code=procedure_code,
+        instance_count=int(row.get("instance_count", 9999) or 9999),
+    )
     result["structures_planned"] = structures
 
     # ── Skip check ────────────────────────────────────────────────────────────
@@ -383,14 +388,21 @@ def main() -> int:
         for _, row in df.iterrows():
             code = str(row.get("procedure_code_value", ""))
             phase = str(row.get("phase_name", "") or "")
+            n_slices = int(row.get("instance_count", 9999) or 9999)
             structs = mapper.get_structures(code, phase)
-            calls = build_task_calls(structs, licensed_enabled=cfg.get("licensed_tasks_enabled", True))
+            calls = build_task_calls(
+                structs,
+                licensed_enabled=cfg.get("licensed_tasks_enabled", True),
+                procedure_code=code,
+                instance_count=n_slices,
+            )
             task_summary = ", ".join(f"{c.task}({c.output_structures})" for c in calls)
+            skip_reason = f"(skipped: only {n_slices} slices)" if not calls and structs else ""
             print(
                 f"ct_id={row.get('ct_id'):>4}  "
                 f"code={code:<8}  phase={phase:<12}  "
-                f"merge={str(row.get('merge_status', '')):<14}  "
-                f"tasks={task_summary or '(none)'}"
+                f"slices={n_slices:<5}  "
+                f"tasks={task_summary or skip_reason or '(none)'}"
             )
         return 0
 
