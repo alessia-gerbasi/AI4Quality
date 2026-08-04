@@ -263,32 +263,42 @@ def process_series(row: pd.Series, cfg: dict[str, Any], mapper: RoiMapper) -> di
 
         # ── CT.nii.gz ─────────────────────────────────────────────────────────
         if not ct_nii.exists():
+            log.info("  → converting DICOM → CT.nii.gz  (%s slices)", row.get("instance_count", "?"))
             if merge_status == "merged_final":
                 collapsed = find_collapsed_nifti(series_path, series_name)
                 if collapsed is not None:
                     copy_nifti_as_ct(collapsed, ct_nii)
                     result["converter"] = "collapsed_nifti"
+                    log.info("  → used pre-built collapsed nii.gz")
                 else:
                     result["converter"] = convert_dicom_to_nifti(
                         series_path, ct_nii,
                         fallback_order=cfg.get("dicom_convert_fallback_order"),
                     )
+                    log.info("  → conversion done via %s", result["converter"])
             else:
                 result["converter"] = convert_dicom_to_nifti(
                     series_path, ct_nii,
                     fallback_order=cfg.get("dicom_convert_fallback_order"),
                 )
+                log.info("  → conversion done via %s", result["converter"])
+        else:
+            log.info("  → CT.nii.gz already exists, skipping conversion")
 
         # ── Phase prediction ──────────────────────────────────────────────────
         if cfg.get("save_phase_json", True):
             phase_json = series_dir / "phase.json"
-            try:
-                predict_phase(ct_nii, phase_json)
-            except Exception as exc:
-                log.warning("Phase prediction failed for %s: %s", series_dir.name, exc)
+            if not phase_json.exists():
+                log.info("  → running phase prediction")
+                try:
+                    predict_phase(ct_nii, phase_json)
+                except Exception as exc:
+                    log.warning("  → phase prediction failed: %s", exc)
 
         # ── Segmentation ──────────────────────────────────────────────────────
         if task_calls:
+            task_summary = ", ".join(f"{c.task}({c.output_structures})" for c in task_calls)
+            log.info("  → segmenting: %s", task_summary)
             written = run_task_calls(
                 ct_nii=ct_nii,
                 series_out_dir=series_dir,
@@ -298,8 +308,9 @@ def process_series(row: pd.Series, cfg: dict[str, Any], mapper: RoiMapper) -> di
                 body_seg=cfg.get("body_seg", True),
             )
             result["structures_written"] = written
+            log.info("  → done: %s", written)
         else:
-            log.info("No structures to segment for %s / %s / %s", procedure_code, phase_name, series_dir.name)
+            log.info("  → no structures to segment for %s / %s", procedure_code, phase_name)
 
         # ── Sanity check PNG ──────────────────────────────────────────────────
         if cfg.get("save_sanity_png", True):
@@ -307,7 +318,7 @@ def process_series(row: pd.Series, cfg: dict[str, Any], mapper: RoiMapper) -> di
                 save_sanity_check(ct_nii, series_dir, series_dir / "sanity_check.png",
                                   structures=structures)
             except Exception as exc:
-                log.warning("Sanity check failed for %s: %s", series_dir.name, exc)
+                log.warning("  → sanity check failed: %s", exc)
 
     except Exception as exc:
         tb = traceback.format_exc()
