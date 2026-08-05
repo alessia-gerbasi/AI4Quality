@@ -296,7 +296,13 @@ def process_series(row: pd.Series, cfg: dict[str, Any], mapper: RoiMapper) -> di
             if not phase_json.exists():
                 log.info("  → running phase prediction")
                 try:
-                    predict_phase(ct_nii, phase_json)
+                    predict_phase(
+                        ct_nii,
+                        phase_json,
+                        timeout_seconds=cfg.get("phase_prediction_timeout_seconds", 600),
+                        device=_build_device_string(cfg),
+                        quiet=cfg.get("phase_prediction_quiet", True),
+                    )
                 except Exception as exc:
                     log.warning("  → phase prediction failed: %s", exc)
 

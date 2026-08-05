@@ -34,6 +34,8 @@ dicom_convert_fallback_order:
 # ── Segmentation ──────────────────────────────────────────────────────────────
 licensed_tasks_enabled: true   # set false to skip heartchambers_highres and coronary_arteries
 save_phase_json: true          # run totalseg_get_phase and save phase.json
+phase_prediction_timeout_seconds: 600  # fail open if phase prediction blocks too long
+phase_prediction_quiet: true   # suppress totalseg_get_phase stdout during normal runs
 save_sanity_png: true          # save sanity_check.png with CT slice + segmentation overlay
 
 # ── Logging ───────────────────────────────────────────────────────────────────
