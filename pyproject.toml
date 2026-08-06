@@ -12,8 +12,21 @@ dependencies = [
   "pydicom>=2.4.4",
   "pandas>=2.2.2",
   "openpyxl>=3.1.5",
-  "PyYAML>=6.0.2"
+  "PyYAML>=6.0.2",
+  "nibabel>=5.2.1",
+  "numpy>=1.26.4",
+  "matplotlib>=3.8.4",
+  "streamlit>=1.37.1"
 ]
 
 [tool.setuptools]
 include-package-data = true
+
+[tool.setuptools.packages.find]
+include = [
+  "_00_Preprocessing*",
+  "_01_Segmentation*",
+  "_02_QualityCheck*",
+  "shared*",
+  "TACACP*"
+]

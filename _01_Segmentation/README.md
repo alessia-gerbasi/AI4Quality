@@ -28,28 +28,7 @@ python main.py
 
 To switch to a new cohort: change csv_path and output_root in config/defaults.yaml.
 
-
-The `skip_existing` / `overwrite` flags already exist but can't be toggled cleanly from CLI without editing the YAML. I'll add a proper `--reprocess` flag and make `--overwrite` actually clean the output directory: 
-
-Replacing 13 lines with 38 lines in [](file:///data/alessia.gerbasi/AI4Quality/_01_Segmentation/main.py)
-
-
-```
-
-```
-Also update `defaults.yaml` to document the three modes:  
-
-Replacing 2 lines with 6 lines in [](file:///data/alessia.gerbasi/AI4Quality/_01_Segmentation/config/defaults.yaml)
-
-
-```
-
-```
-Verify the dry-run still works and the new flags parse: 
-
-Ran terminal command:  cd /data/alessia.gerbasi/AI4Quality/_01_Segmentation && python main.py --dry-run --ct-ids 1 11 --reprocess 2>&1 | head -15
-
-All good. Three modes are now available:
+Running options:
 
 | Mode | Command | Behaviour |
 |---|---|---|
@@ -60,29 +39,30 @@ All good. Three modes are now available:
 You can also set the defaults permanently in config/defaults.yaml under `skip_existing` / `overwrite`.
 
 
----
-
 ## TotalSegmentator algorithm routing
 
-Based on the current `task_router.py` logic:
+Thresholds (see `task_router.py`):
+- **`MIN_SLICES_FOR_SEGMENTATION = 5`** — series with fewer slices are skipped entirely (degenerate scouts/localizers kill workers)
+- **`SMALL_VOLUME_THRESHOLD = 30`** — series below this are treated as monitoring/bolus-tracking volumes
 
-| Protocol | Phase | Slices | Task | Reason |
+| Protocol | Phase | Slices | Task | Notes |
 |---|---|---|---|---|
-| TACCOR, TACCRG | any | ≥30 | `coronary_arteries` (licensed) | ECG-gated cardiac CT — dedicated model |
-| TACCOR, TACCRG | any | <30 | `coronary_arteries` (licensed) + **fast=True, no body crop** | monitoring bolus slice |
+| Any | any | <5 | **skipped** | degenerate series |
+| TACCOR, TACCRG | any | ≥30 | `coronary_arteries` (licensed) | ECG-gated cardiac CT |
+| TACCOR, TACCRG | any | 5–29 | **skipped** | `coronary_arteries` rejects `--fast` and needs a full cardiac volume |
 | TACACP | any | ≥30 | `heartchambers_highres` (licensed) | only task with `pulmonary_artery` label |
-| TACACP | any | <30 | `heartchambers_highres` (licensed) + **fast=True, no body crop** | monitoring bolus slice |
-| All others (TACPEC, TACPEM, TACAAO, etc.) | arteriosa / neutral | ≥30 | `total --roi_subset aorta` (open) | full-res model trained on diverse routine CTs |
-| All others | arteriosa / neutral | <30 | `total --roi_subset aorta` + **fast=True, no body crop** | monitoring slice |
-| All others | venosa | ≥30 | `total --roi_subset liver spleen` (open) | standard parenchymal |
-| All others | venosa | <30 | `total --roi_subset liver spleen` + **fast=True** | monitoring slice |
+| TACACP | any | 5–29 | **skipped** | `heartchambers_highres` rejects `--fast` and needs a full cardiac volume |
+| All others (TACPEC, TACPEM, TACAAO, etc.) | arteriosa / neutral | ≥30 | `total --roi_subset aorta` (open) | full-res model |
+| All others | arteriosa / neutral | 5–29 | `total --roi_subset aorta` + **fast=True, no body crop** | monitoring slice |
+| All others | venosa | ≥30 | `total --roi_subset liver spleen` (open) | |
+| All others | venosa | 5–29 | `total --roi_subset liver spleen` + **fast=True, no body crop** | monitoring slice |
 | TACREC, TACREN, TACURO | any | ≥30 | `total --roi_subset kidney_left kidney_right` (open) | |
 | TACAGC, TACCRA, TACAGE | any | ≥30 | `total --roi_subset common_carotid_artery_right common_carotid_artery_left` (open) | |
 | TACANC | venosa | ≥30 | `total --roi_subset iliopsoas_left iliopsoas_right` (open) | |
-| Any | any | 0 | **skipped** | no data |
 
 **Key decisions:**
-- `heartchambers_highres` is **only** used for `aorta` when the protocol is TACCOR/TACCRG (ECG-gated). For all other protocols (TACPEC, TACAAO, etc.) aorta uses the standard `total` task — it generalises better to routine 2mm CTs
-- `pulmonary_artery` always uses `heartchambers_highres` because no open task has that label
-- Small volumes (<30 slices, i.e. monitoring/bolus series) always force the 3mm fast model to reduce the minimum z-context needed
+- `heartchambers_highres` and `coronary_arteries` **never** use `--fast` (the tasks explicitly forbid it) and require a full diagnostic volume (≥30 slices); monitoring bolus-tracking series for these protocols are skipped
+- `heartchambers_highres` for `aorta` is only used with TACCOR/TACCRG (ECG-gated); all other protocols use the `total` task which generalises better to routine 2mm CTs
+- `pulmonary_artery` always uses `heartchambers_highres` — no open task has that label
+- `total` task on small volumes (5–29 slices) uses `--fast` (3mm model) + no body crop to reduce z-context requirements
 

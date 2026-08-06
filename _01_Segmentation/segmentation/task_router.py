@@ -6,9 +6,11 @@ from dataclasses import dataclass, field
 # Procedure codes where heartchambers_highres is appropriate (ECG-gated cardiac CTs)
 _CARDIAC_CODES: frozenset[str] = frozenset({"TACCOR", "TACCRG"})
 
-# Monitoring/bolus-tracking series below this slice count use fast mode instead of skipping
-MIN_SLICES_FOR_SEGMENTATION: int = 1   # skip only empty series (0 slices)
-SMALL_VOLUME_THRESHOLD: int = 30       # below this, force fast=True and body_seg=False
+# 1-slice degenerate/scout series kill TotalSegmentator workers; require at least 5
+MIN_SLICES_FOR_SEGMENTATION: int = 5
+# Below this, total task uses fast=True; licensed tasks (coronary/heartchambers)
+# are skipped entirely — they reject --fast and need a full diagnostic volume
+SMALL_VOLUME_THRESHOLD: int = 30
 
 
 @dataclass
@@ -62,22 +64,24 @@ def build_task_calls(
     calls: list[TaskCall] = []
 
     # ── Licensed tasks ────────────────────────────────────────────────────────
-    if licensed_enabled:
+    # heartchambers_highres and coronary_arteries reject --fast and require enough
+    # z-context to run; skip them on monitoring/bolus tracking volumes (<30 slices).
+    if licensed_enabled and not is_small:
         if hc_structs:
             calls.append(TaskCall(
                 task="heartchambers_highres",
                 roi_subset=None,
                 output_structures=hc_structs,
-                force_fast=is_small,
-                force_no_body_seg=is_small,
+                force_fast=False,
+                force_no_body_seg=False,
             ))
         if ca_structs:
             calls.append(TaskCall(
                 task="coronary_arteries",
                 roi_subset=None,
                 output_structures=ca_structs,
-                force_fast=is_small,
-                force_no_body_seg=is_small,
+                force_fast=False,
+                force_no_body_seg=False,
             ))
 
     # ── Open total task ───────────────────────────────────────────────────────

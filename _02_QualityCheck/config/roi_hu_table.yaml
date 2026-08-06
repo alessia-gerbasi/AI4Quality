@@ -1,0 +1,175 @@
+# ROI table: procedure code → structures to segment per phase
+#
+# arteriosa: segment when phase_name == "arteriosa"
+# venosa:    segment when phase_name == "venosa"
+# monitoring/basale/empty/other: segment union of arteriosa + venosa
+#
+# Values must be canonical TotalSegmentator label names.
+# "no" or empty list means nothing to segment for that phase.
+#
+# 
+
+TACPEC:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600] # min, max, min with threshold, max with threshold
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] # if basale available
+
+TACCOR:
+  arteriosa: [coronary_arteries]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACPEM: 
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] 
+
+TACTCG:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] 
+
+TACAAO:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACAAT:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACCRG:
+  arteriosa: [coronary_arteries]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACADC:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] 
+
+TACBAC:
+  arteriosa: []
+  venosa: [kidney_left, kidney_right]
+  HU_venosa: [100,125,80,145]
+
+TACADI:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACATD:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACAGC:
+  arteriosa: [common_carotid_artery_right, common_carotid_artery_left]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACCRA:
+  arteriosa: [common_carotid_artery_right, common_carotid_artery_left]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACAGE:
+  arteriosa: [common_carotid_artery_right, common_carotid_artery_left]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+# iliopsoas expanded to left+right canonical names
+TACANC:
+  arteriosa: []
+  venosa: [iliopsoas_left, iliopsoas_right]
+  HU_venosa: [30,70]
+
+TACAGI:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACADN:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] 
+
+TACTFA:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] 
+
+TACACP:
+  arteriosa: [pulmonary_artery]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACPEV:
+  arteriosa: []
+  venosa: [kidney_left, kidney_right]
+  HU_venosa: [100,125,80,145]
+
+TACPEL:
+  arteriosa: []
+  venosa: [kidney_left, kidney_right]
+  HU_venosa: [100,125,80,145]
+
+TACREC:
+  arteriosa: [kidney_left, kidney_right]
+  HU_arteriosa: [110,130,130,150]
+  venosa: [kidney_left, kidney_right]
+  HU_venosa: [100,125,80,145]
+
+TACCUO:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACAAR:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACAGA:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: []
+
+TACATC:
+  arteriosa: [aorta]
+  HU_arteriosa: [300,500,250,600]
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] 
+
+TACREN:
+  arteriosa: [kidney_left, kidney_right]
+  HU_arteriosa: [110,130,130,150]
+  venosa: [kidney_left, kidney_right]
+  HU_venosa: [100,125,80,145]
+
+TACURO:
+  arteriosa: [kidney_left, kidney_right]
+  HU_arteriosa: [110,130,130,150]
+  venosa: [kidney_left, kidney_right]
+  HU_venosa: [100,125,80,145]
+
+TACTON:
+  arteriosa: [aorta]
+  HU_arteriosa: [110,130,130,150]
+  venosa: [liver, spleen]
+  HU_venosa: [100,120,90,150]
+  HU_delta_venosa: [50,60,40,80] 
