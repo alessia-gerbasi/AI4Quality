@@ -27,6 +27,7 @@ def _safe_first_dicom(series_path: Path) -> tuple[dict, list[str], int]:
                     "SeriesDescription",
                     "BodyPartExamined",
                     "AcquisitionTime",
+                    "ContrastBolusStartTime",
                 ],
             )
             if dataset is None:
@@ -42,6 +43,7 @@ def _safe_first_dicom(series_path: Path) -> tuple[dict, list[str], int]:
         "SeriesDescription": str(getattr(dataset, "SeriesDescription", "") or ""),
         "BodyPartExamined": str(getattr(dataset, "BodyPartExamined", "") or "") or None,
         "AcquisitionTime": str(getattr(dataset, "AcquisitionTime", "") or "") or None,
+        "ContrastBolusStartTime": str(getattr(dataset, "ContrastBolusStartTime", "") or "") or None,
         "SeriesInstanceUID": None,
     }, sorted(set(issues)), count
 
@@ -107,6 +109,7 @@ def scan_series(dicom_roots: list[str], max_ct: int | None = None) -> list[Serie
                 series_name=series_name,
                 body_part_examined=header.get("BodyPartExamined"),
                 acquisition_time=header.get("AcquisitionTime"),
+                contrast_bolus_start=header.get("ContrastBolusStartTime"),
                 series_description=header.get("SeriesDescription"),
                 series_instance_uid=header.get("SeriesInstanceUID"),
                 instance_count=count,

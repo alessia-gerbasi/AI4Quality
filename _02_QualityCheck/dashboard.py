@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -22,6 +23,7 @@ def _dependency_error_message(missing_module: str) -> str:
 try:
     import pandas as pd
     import streamlit as st
+    import yaml
 
     from _02_QualityCheck.reporting import (
         build_aggregate_stats_dataframe,
@@ -36,6 +38,7 @@ except ModuleNotFoundError as exc:
 
 RESULTS_FOLDER_GLOB = "OUTPUTS*"
 PREPROCESSING_CSV_PATH = _REPO_ROOT / "_00_Preprocessing" / "OUTPUTS" / "retained_series_unified_filtered.csv"
+PROTOCOLS_CONFIG_PATH = _REPO_ROOT / "config" / "common" / "ct_protocols.yaml"
 
 
 def _resolve_path(path_str: str | None) -> Path | None:
@@ -72,6 +75,112 @@ def _load_ct_type_lookup() -> pd.DataFrame:
     lookup["CT_type"] = lookup["CT_type"].fillna("").astype(str)
     lookup = lookup.drop_duplicates(subset=["ct_id", "series_folder"], keep="first")
     return lookup
+
+
+def _load_procedure_description_lookup() -> dict[str, str]:
+    if not PROTOCOLS_CONFIG_PATH.exists():
+        return {}
+
+    with PROTOCOLS_CONFIG_PATH.open("r", encoding="utf-8") as stream:
+        config = yaml.safe_load(stream) or {}
+
+    procedures = config.get("procedures", {})
+    if not isinstance(procedures, dict):
+        return {}
+
+    lookup: dict[str, str] = {}
+    for code, item in procedures.items():
+        if not isinstance(item, dict):
+            continue
+        description = str(item.get("description", "") or "").strip()
+        code_str = str(code or "").strip()
+        if code_str:
+            lookup[code_str] = description
+    return lookup
+
+
+def _ensure_procedure_description_columns(detail_df: pd.DataFrame, series_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    lookup = _load_procedure_description_lookup()
+    detail_df = detail_df.copy()
+    series_df = series_df.copy()
+
+    for dataframe in (detail_df, series_df):
+        if "procedure_description" not in dataframe.columns:
+            if "procedure_code" in dataframe.columns:
+                dataframe["procedure_description"] = dataframe["procedure_code"].map(lookup).fillna("")
+            else:
+                dataframe["procedure_description"] = ""
+        else:
+            dataframe["procedure_description"] = dataframe["procedure_description"].fillna("").astype(str)
+
+        dataframe["procedure_description"] = dataframe["procedure_description"].fillna("").astype(str)
+
+    return detail_df, series_df
+
+
+def _normalize_phase_name(phase_name: object) -> str:
+    if pd.isna(phase_name):
+        return ""
+    return str(phase_name).strip().lower().replace(" ", "_")
+
+
+def _phase_prediction_matches(actual_phase: str, predicted_phase: str) -> bool:
+    if not actual_phase or not predicted_phase:
+        return False
+    if actual_phase == predicted_phase:
+        return True
+    if actual_phase == "venosa" and "venous" in predicted_phase:
+        return True
+    if actual_phase == "arteriosa" and "arterial" in predicted_phase:
+        return True
+    return False
+
+
+def _load_phase_prediction(series_dir_str: object) -> dict[str, object]:
+    phase_json_path = _resolve_path(str(series_dir_str)) if pd.notna(series_dir_str) else None
+    if phase_json_path is None:
+        return {}
+
+    phase_json_path = phase_json_path / "phase.json"
+    if not phase_json_path.exists():
+        return {}
+
+    try:
+        with phase_json_path.open("r", encoding="utf-8") as stream:
+            data = json.load(stream)
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+    if not isinstance(data, dict):
+        return {}
+    return data
+
+
+def _build_phase_prediction_columns(series_df: pd.DataFrame) -> pd.DataFrame:
+    if series_df.empty:
+        series_df = series_df.copy()
+        series_df["predicted_phase"] = ""
+        series_df["predicted_phase_probability"] = pd.NA
+        series_df["phase_prediction_matches"] = pd.NA
+        return series_df
+
+    series_df = series_df.copy()
+    predictions = series_df.get("series_dir", pd.Series(index=series_df.index, dtype=object)).apply(_load_phase_prediction)
+    series_df["predicted_phase"] = predictions.apply(lambda value: str(value.get("phase", "") or ""))
+    series_df["predicted_phase_probability"] = pd.to_numeric(
+        predictions.apply(lambda value: value.get("probability") if value else pd.NA),
+        errors="coerce",
+    )
+
+    actual_phase = series_df.get("phase_name", pd.Series(index=series_df.index, dtype=object)).apply(_normalize_phase_name)
+    predicted_phase = series_df["predicted_phase"].apply(_normalize_phase_name)
+    has_prediction = predicted_phase != ""
+    series_df["phase_prediction_matches"] = pd.Series(pd.NA, index=series_df.index, dtype=object)
+    series_df.loc[has_prediction, "phase_prediction_matches"] = [
+        _phase_prediction_matches(actual, predicted)
+        for actual, predicted in zip(actual_phase[has_prediction], predicted_phase[has_prediction], strict=False)
+    ]
+    return series_df
 
 
 def _ensure_ct_type_columns(detail_df: pd.DataFrame, series_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -120,6 +229,8 @@ def load_results(output_dir_str: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Da
     detail_df = pd.read_csv(detail_path)
     series_df = pd.read_csv(series_path)
     detail_df, series_df = _ensure_ct_type_columns(detail_df, series_df)
+    detail_df, series_df = _ensure_procedure_description_columns(detail_df, series_df)
+    series_df = _build_phase_prediction_columns(series_df)
 
     if "output_image_path" in detail_df.columns:
         detail_df["output_image_abs"] = detail_df["output_image_path"].apply(lambda v: str(_resolve_path(v)) if pd.notna(v) else "")
@@ -206,6 +317,54 @@ def _download_bytes(path_str: str | None) -> bytes | None:
     if path is None or not path.exists():
         return None
     return path.read_bytes()
+
+
+def _format_percentage(value: object) -> str:
+    if pd.isna(value):
+        return "n/a"
+    return f"{float(value) * 100.0:.1f}%"
+
+
+def _render_series_metadata(row: pd.Series) -> None:
+    procedure_code = str(row.get("procedure_code", "") or "")
+    procedure_description = str(row.get("procedure_description", "") or "")
+    actual_phase = str(row.get("phase_name", "") or "")
+    predicted_phase = str(row.get("predicted_phase", "") or "")
+    prediction_probability = _format_percentage(row.get("predicted_phase_probability")) if predicted_phase else "n/a"
+    prediction_matches = row.get("phase_prediction_matches")
+
+    phase_badge = ""
+    if pd.notna(prediction_matches):
+        if bool(prediction_matches):
+            phase_badge = "<span style='display:inline-block;margin-left:0.45rem;padding:0.1rem 0.45rem;border-radius:999px;background:#dcfce7;color:#166534;font-size:0.8rem;font-weight:700;'>Match</span>"
+        else:
+            phase_badge = "<span style='display:inline-block;margin-left:0.45rem;padding:0.1rem 0.45rem;border-radius:999px;background:#fee2e2;color:#991b1b;font-size:0.8rem;font-weight:700;'>Mismatch</span>"
+
+    predicted_phase_html = "<span style='color:#64748b;'>No phase prediction found</span>"
+    if predicted_phase:
+        predicted_color = "#166534" if bool(prediction_matches) else "#991b1b"
+        predicted_phase_html = (
+            f"<span style='font-weight:700;color:{predicted_color};'>{predicted_phase}</span>"
+            f" <span style='color:#475569;'>({prediction_probability})</span>{phase_badge}"
+        )
+
+    procedure_html = procedure_code or "n/a"
+    if procedure_description:
+        procedure_html = f"<span style='font-weight:700;'>{procedure_code}</span> <span style='color:#475569;'>- {procedure_description}</span>"
+
+    st.markdown(
+        f"""
+        <div style="margin:0.25rem 0 1rem 0;padding:0.9rem 1rem;border:1px solid #e2e8f0;border-radius:0.6rem;background:#f8fafc;">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0.75rem 1.5rem;">
+            <div><strong>Procedure:</strong> {procedure_html}</div>
+            <div><strong>Actual phase:</strong> {actual_phase or 'n/a'}</div>
+            <div><strong>Series folder:</strong> <span style="color:#475569;">{row.get('series_folder', '')}</span></div>
+            <div><strong>Predicted phase:</strong> {predicted_phase_html}</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def main() -> None:
@@ -325,6 +484,7 @@ def main() -> None:
     viewer_col, roi_col = st.columns([1.15, 1.0])
     with viewer_col:
         st.markdown("### Image Review")
+        _render_series_metadata(selected_series_row)
         image_path = selected_series_row.get("image_abs", "")
         if isinstance(image_path, str) and image_path and Path(image_path).exists():
             st.image(image_path, caption=selected_series_label)

@@ -161,9 +161,9 @@ policy_name: vascular
 
 ## Selection Results
 
-- Exams processed: 213
-- Groups processed: 213
-- Selected vascular series: 137
+- Exams processed: 212
+- Groups processed: 212
+- Selected vascular series: 133
 - Monitoring rows kept: 43
 - Exams without an eligible vascular series: 131
 
@@ -388,7 +388,7 @@ No eligible series was identified.
 ### Exam 122 - jerry_chambers
 
 Selected series:
-- SMDC  2.0  I30f  3 (2_smdc__2_0__i30f__3)
+- Angio Arti Inf  1.5  I31f  4 (11_angio_arti_inf__1_5__i31f__4)
 
 Missing required phase buckets: aorta, premonitoring, monitoring
 
@@ -400,7 +400,7 @@ No eligible series was identified.
 ### Exam 128 - carl_blanks
 
 Selected series:
-- SMDC TSA  1.5  I26f  4 (4_smdc_tsa__1_5__i26f__4)
+- Angio TSA  0.75  I26f  4 (20_angio_tsa__0_75__i26f__4)
 
 Missing required phase buckets: aorta, premonitoring, monitoring
 
@@ -843,7 +843,6 @@ No eligible series was identified.
 ### Exam 300 - juanita_loveland
 
 Selected series:
-- [1] Distance Line Vasc (501__1__distance_line_vasc)
 - Aorta 0,80 Bv44 Q4 Matrix 768 (501_aorta_0_80_bv44_q4_matrix_768) [phase=aorta]
 - Monitoring 5,00 Br36 Matrix 512 (401_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
@@ -864,14 +863,6 @@ No eligible series was identified.
 ### Exam 310 - leona_page
 
 No eligible series was identified.
-
-### Exam 314 - justin_keffer
-
-Selected series:
-- [1] Distance Line Func 80% (601__1__distance_line_func_80%)
-
-Missing required phase buckets: aorta, premonitoring, monitoring
-
 
 ### Exam 315 - elizabeth_sanders
 
@@ -896,7 +887,7 @@ No eligible series was identified.
 ### Exam 328 - gus_roberts
 
 Selected series:
-- SMDC  2.0  I30f  3 (2_smdc__2_0__i30f__3)
+- Angio Arti Inf  1.5  I31f  4 (14_angio_arti_inf__1_5__i31f__4)
 
 Missing required phase buckets: aorta, premonitoring, monitoring
 
@@ -1003,7 +994,6 @@ Selected series:
 ### Exam 377 - william_burden
 
 Selected series:
-- [10] Distance Line Vasc (401__10__distance_line_vasc)
 - Aorta ECG Heart 1,00 Qr40 Q4 BestDiast 75% Matrix 512 SPP_ME70 (401_aorta_ecg_heart_1_00_qr40_q4_bestdiast_75%_matrix_512_spp_me70) [phase=aorta]
 - Monitoring 5,00 Br36 Matrix 512 (301_monitoring_5_00_br36_matrix_512) [phase=monitoring]
 - Premonitoring 5,00 Br36 Matrix 512 (201_premonitoring_5_00_br36_matrix_512) [phase=premonitoring]
@@ -1178,7 +1168,7 @@ Missing required phase buckets: aorta, premonitoring, monitoring
 ### Exam 437 - crystal_perez
 
 Selected series:
-- SMDC TSA  0.75  I26f  4 (3_smdc_tsa__0_75__i26f__4)
+- Angio TSA  0.75  I26f  4 (18_angio_tsa__0_75__i26f__4)
 
 Missing required phase buckets: aorta, premonitoring, monitoring
 
@@ -1319,7 +1309,7 @@ Missing required phase buckets: aorta, premonitoring, monitoring
 ### Exam 478 - neil_mcdonald
 
 Selected series:
-- [1] Distance Line Coro  -200ms (601__1__distance_line_coro__-200ms)
+- CCT HR Heart  0,20 Bv72 Q4 -200ms Matrix 1024 (601_cct_hr_heart__0_20_bv72_q4_-200ms_matrix_1024)
 
 Missing required phase buckets: aorta, premonitoring, monitoring
 
@@ -1356,7 +1346,7 @@ Missing required phase buckets: aorta
 ### Exam 488 - pearline_dye
 
 Selected series:
-- SMDC TSA  1.0  I26f  4 (3_smdc_tsa__1_0__i26f__4)
+- Angio TSA  0.75  I26f  4 (14_angio_tsa__0_75__i26f__4)
 
 Missing required phase buckets: aorta, premonitoring, monitoring
 
@@ -1453,7 +1443,6 @@ No eligible series was identified.
 ### Exam 71 - myrtle_buchanan
 
 Selected series:
-- smdc  2.0  I30f  3 (2_smdc__2_0__i30f__3)
 - Angio Aorta  1.0  I26f  3 (11_angio_aorta__1_0__i26f__3) [phase=aorta]
 
 Missing required phase buckets: premonitoring, monitoring

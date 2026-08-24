@@ -79,6 +79,7 @@ def main() -> int:
         phase_keywords=[k.lower() for k in cfg.selection.get("phase_keywords", cfg.selection["include_keywords"])],
         include_keywords=[k.lower() for k in cfg.selection["include_keywords"]],
         exclude_keywords=[k.lower() for k in cfg.selection["exclude_keywords"]],
+        vascular_exclude_keywords=[k.lower() for k in cfg.selection.get("vascular_exclude_keywords", [])],
         force_accept_keywords=[k.lower() for k in cfg.selection.get("force_accept_keywords", [])],
         exclude_keyword_veto={
             k.lower(): [v.lower() for v in vals]
@@ -112,6 +113,7 @@ def main() -> int:
             "procedure_code_value": item.procedure_code_value,
             "body_part_examined": item.base.body_part_examined,
             "acquisition_time": item.base.acquisition_time,
+            "contrast_bolus_start": item.base.contrast_bolus_start,
             "status": dec.status,
             "reason_code": dec.reason_code,
             "reason_detail": dec.reason_detail,

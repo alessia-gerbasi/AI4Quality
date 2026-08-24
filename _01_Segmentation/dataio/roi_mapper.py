@@ -13,9 +13,29 @@ _NEUTRAL_PHASES = {"monitoring", "basale", "base", "vascular", ""}
 def _load_table(roi_table_path: Path) -> dict[str, dict[str, list[str]]]:
     with open(roi_table_path) as fh:
         raw: dict[str, Any] = yaml.safe_load(fh)
+
+    # Unified format:
+    # procedures:
+    #   TACXXX:
+    #     phases:
+    #       arteriosa: { rois: [...] }
+    #       venosa:    { rois: [...] }
+    if isinstance(raw, dict) and "procedures" in raw:
+        procedures = raw.get("procedures") or {}
+        table: dict[str, dict[str, list[str]]] = {}
+        for code, entry in procedures.items():
+            phases = (entry or {}).get("phases") or {}
+            arteriosa = (phases.get("arteriosa") or {}).get("rois") or []
+            venosa = (phases.get("venosa") or {}).get("rois") or []
+            table[(code or "").strip().upper()] = {
+                "arteriosa": list(arteriosa),
+                "venosa": list(venosa),
+            }
+        return table
+
     table: dict[str, dict[str, list[str]]] = {}
     for code, phases in (raw or {}).items():
-        table[code] = {
+        table[(code or "").strip().upper()] = {
             "arteriosa": list(phases.get("arteriosa") or []),
             "venosa": list(phases.get("venosa") or []),
         }

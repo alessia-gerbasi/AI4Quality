@@ -1,0 +1,333 @@
+version: 1
+
+# Unified CT protocol configuration used by:
+# - _01_Segmentation (ROI selection)
+# - _02_QualityCheck (HU / HU_delta thresholds)
+# - _03_RootCauseAnalysis (HU / HU_delta / timing + timing adjustments)
+
+# Global timing offsets applied to timing thresholds based on Injection History
+# column "Needle Access".
+timing_adjustments:
+  by_access:
+    - access_type: "femorale"
+      offset_seconds: 25
+    - access_type: "venoso centrale"
+      offset_seconds: -8
+
+procedures:
+  TACPEC:
+    description: "TAC ADDOME E PELVI CON CONTR."
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [35, 40, 30, 45]
+      venosa:
+        rois: [liver, spleen]
+        HU: [100, 120, 90, 150]
+        HU_delta: [50, 60, 40, 80]
+        timing: [70, 90]
+
+  TACCOR:
+    description: "Tac Coronarica e Angio Tac Cor."
+    phases:
+      arteriosa:
+        rois: [coronary_arteries]
+        HU: [300, 500, 250, 600]
+        timing: [12, 20]
+      venosa:
+        rois: []
+
+  TACPEM:
+    description: "TAC Addome e Pelvi"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [35, 40, 30, 45]
+      venosa:
+        rois: [liver, spleen]
+        HU: [100, 120, 90, 150]
+        HU_delta: [50, 60, 40, 80]
+        timing: [70, 90]
+
+  TACTCG: 
+    description: "TAC TOTAL BODY CON MEZZO DI CONTRASTO"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [35, 40, 30, 45]
+      venosa:
+        rois: [liver, spleen]
+        HU: [100, 120, 90, 150]
+        HU_delta: [50, 60, 40, 80]
+        timing: [70, 90]
+
+  TACAAO:
+    description: "Angio TAC aorta addominale"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [15, 22]
+      venosa:
+        rois: []
+
+  TACAAT:
+    description: "Angio TAC aorta toracica"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [15, 22]
+      venosa:
+        rois: []
+
+  TACCRG:
+    description: "TC Coronarografia"
+    phases:
+      arteriosa:
+        rois: [coronary_arteries]
+        HU: [300, 500, 250, 600]
+        timing: [12, 20]
+      venosa:
+        rois: []
+
+  TACADC:
+    description: "TAC Addome con contrasto"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [35, 40, 30, 45]
+      venosa:
+        rois: [liver, spleen]
+        HU: [100, 120, 90, 150]
+        HU_delta: [50, 60, 40, 80]
+        timing: [70, 90]
+
+  TACBAC:
+    description: "TAC del Bacino"
+    phases:
+      arteriosa:
+        rois: []
+      venosa:
+        rois: [kidney_left, kidney_right]
+        HU: [100, 125, 80, 145]
+        timing: [70, 90, 60, 100]
+
+  TACADI:
+    description: "Angio TC Aorta addominale e arti inferiori"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [20, 30, 20, 35]
+      venosa:
+        rois: []
+
+  TACATD:
+    description: "Angio TC Aorta toraco addominale"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [15, 22]
+      venosa:
+        rois: []
+
+  TACAGC:
+    description: "Angio TAC del collo"
+    phases:
+      arteriosa:
+        rois: [common_carotid_artery_right, common_carotid_artery_left]
+        HU: [300, 500, 250, 600]
+        timing: [15, 25]
+      venosa:
+        rois: []
+
+  TACCRA:
+    description: "TAC Encefalo+Angiotac Carotidi"
+    phases:
+      arteriosa:
+        rois: [common_carotid_artery_right, common_carotid_artery_left]
+        HU: [300, 500, 250, 600]
+        timing: [15, 25]
+      venosa:
+        rois: []
+
+  TACAGE:
+    description: "Angio TAC cerebrale"
+    phases:
+      arteriosa:
+        rois: [common_carotid_artery_right, common_carotid_artery_left]
+        HU: [300, 500, 250, 600]
+        timing: [15, 25]
+      venosa:
+        rois: []
+
+  TACANC:
+    description: "TAC dell'Anca"
+    phases:
+      arteriosa:
+        rois: []
+      venosa:
+        rois: [iliopsoas_left, iliopsoas_right]
+        HU: [60, 80]
+
+  TACAGI:
+    description: "Angio TAC arto inferiore"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [20, 30, 20, 35]
+      venosa:
+        rois: []
+
+  TACADN:
+    description: "TAC Addome"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [35, 40, 30, 45]
+      venosa:
+        rois: [liver, spleen]
+        HU: [100, 120, 90, 150]
+        HU_delta: [50, 60, 40, 80]
+        timing: [70, 90]
+
+  TACTFA:
+    description: "TAC TOTAL BODY"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [35, 40, 30, 45]
+      venosa:
+        rois: [liver, spleen]
+        HU: [100, 120, 90, 150]
+        HU_delta: [50, 60, 40, 80]
+        timing: [70, 90]
+
+  TACACP:
+    description: "Angio Tc circolo polmonare"
+    phases:
+      arteriosa:
+        rois: [pulmonary_artery]
+        HU: [300, 500, 250, 600]
+        timing: [9, 15]
+      venosa:
+        rois: []
+
+  TACPEV:
+    description: "TAC Pelvi con contrasto"
+    phases:
+      arteriosa:
+        rois: []
+      venosa:
+        rois: [kidney_left, kidney_right]
+        HU: [100, 125, 80, 145]
+        timing: [70, 90, 60, 100]
+
+  TACPEL:
+    description: "TAC Pelvi"
+    phases:
+      arteriosa:
+        rois: []
+      venosa:
+        rois: [kidney_left, kidney_right]
+        HU: [100, 125, 80, 145]
+        timing: [70, 90, 60, 100]
+
+  TACREC:
+    description: "TAC dei reni con contrasto"
+    phases:
+      arteriosa:
+        rois: [kidney_left, kidney_right]
+        HU: [110, 130, 130, 150]
+        timing: [30, 35, 25, 40]
+      venosa:
+        rois: [kidney_left, kidney_right]
+        HU: [100, 125, 80, 145]
+        timing: [80, 100]
+
+  TACCUO:
+    description: "TAC CUORE"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [12, 20]
+      venosa:
+        rois: []
+
+  TACAAR:
+    description: "Angio TC arterie renali/epat."
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [15, 22]
+      venosa:
+        rois: []
+
+  TACAGA:
+    description: "Angiotac Vasi Addominali"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [15, 22]
+      venosa:
+        rois: []
+
+  TACATC:
+    description: "TAC addome + torace"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [300, 500, 250, 600]
+        timing: [35, 40, 30, 45]
+      venosa:
+        rois: [liver, spleen]
+        HU: [100, 120, 90, 150]
+        HU_delta: [50, 60, 40, 80]
+        timing: [70, 90]
+
+  TACREN:
+    description: "TAC dei reni"
+    phases:
+      arteriosa:
+        rois: [kidney_left, kidney_right]
+        HU: [110, 130, 130, 150]
+        timing: [30, 35, 25, 40]
+      venosa:
+        rois: [kidney_left, kidney_right]
+        HU: [100, 125, 80, 145]
+        timing: [80, 100]
+
+  TACURO:
+    description: "URO-TC S/C contrasto"
+    phases:
+      arteriosa:
+        rois: [kidney_left, kidney_right]
+        HU: [110, 130, 130, 150]
+        timing: [30, 35, 25, 40]
+      venosa:
+        rois: [kidney_left, kidney_right]
+        HU: [100, 125, 80, 145]
+        timing: [80, 100]
+
+  TACTON: # per ora consideriamo solo la fase arteriosa, in quanto per la fase venosa serve ROI adatta
+    description: "TAC Torace"
+    phases:
+      arteriosa:
+        rois: [aorta]
+        HU: [110, 130, 130, 150]
+        timing: [30, 35, 25, 40]
+      venosa:
+        rois: []
+

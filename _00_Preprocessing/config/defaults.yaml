@@ -104,6 +104,7 @@ selection:
     - snapshot
     - none
     - vrt
+    - distance line
     - encefalo
     - mip
     - wil
@@ -117,6 +118,9 @@ selection:
     - osteo
     - lung
     - massiccio
+
+  vascular_exclude_keywords:
+    - smdc
 
   precedence: exclude
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from contextlib import nullcontext
 from pathlib import Path
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
@@ -41,8 +42,19 @@ except ModuleNotFoundError as exc:
     print(_dependency_error_message(exc.name or "unknown", "_02_QualityCheck/main.py"), file=sys.stderr)
     raise SystemExit(1) from exc
 
+try:
+    from tqdm import tqdm
+except ModuleNotFoundError:
+    tqdm = None
+
 
 log = logging.getLogger("hu_quality_check")
+
+
+def _build_progress(total: int):
+    if tqdm is None or total <= 0:
+        return nullcontext()
+    return tqdm(total=total, desc="QualityCheck", unit="series", dynamic_ncols=True)
 
 
 def _parse_args() -> argparse.Namespace:
@@ -56,7 +68,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--rules",
         type=Path,
-        default=Path("_02_QualityCheck/config/roi_hu_table.yaml"),
+        default=Path("config/common/ct_protocols.yaml"),
         help="YAML with ROI definitions and HU thresholds",
     )
     parser.add_argument(
@@ -246,43 +258,54 @@ def run() -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     all_results: list[SeriesEvaluation] = []
-    grouped = df.groupby("ct_id", sort=True)
+    grouped_targets: list[tuple[int, pd.DataFrame, list[pd.Series]]] = []
+    total_targets = 0
 
-    for ct_id, df_patient in grouped:
+    for ct_id, df_patient in df.groupby("ct_id", sort=True):
         targets = list(iter_target_series(df_patient))
         if not targets:
             continue
+        grouped_targets.append((ct_id, df_patient, targets))
+        total_targets += len(targets)
 
-        for row in targets:
-            try:
-                evaluation = _evaluate_series(
-                    row=row,
-                    df_patient=df_patient,
-                    rules=rules,
-                    nii_root=args.nii_root,
-                    output_dir=output_dir,
-                )
-                if evaluation is not None:
-                    all_results.append(evaluation)
-            except Exception as exc:
-                log.exception("Failed HU evaluation for ct_id=%s series=%s", ct_id, row.get("series_folder", ""))
-                fallback = SeriesEvaluation(
-                    ct_id=int(row["ct_id"]),
-                    ct_name=str(row.get("ct_name", "")),
-                    ct_folder=str(row.get("ct_folder", "")),
-                    ct_type=str(row.get("CT_type", "") or ""),
-                    procedure_code=str(row.get("procedure_code_norm", "")).upper(),
-                    phase_name=normalize_phase(row.get("phase_name", "")),
-                    series_folder=str(row.get("series_folder", "")),
-                    series_dir=str(build_series_dir(args.nii_root, row)),
-                    reference_series_folder=None,
-                    metric_name="error",
-                    threshold=None,
-                    measurements=[],
-                    scores={},
-                    warnings=[f"Exception: {exc}"],
-                )
-                all_results.append(fallback)
+    with _build_progress(total_targets) as progress:
+        for ct_id, df_patient, targets in grouped_targets:
+            if progress is not None:
+                progress.set_postfix_str(f"ct_id={ct_id} ({len(targets)} series)")
+
+            for row in targets:
+                try:
+                    evaluation = _evaluate_series(
+                        row=row,
+                        df_patient=df_patient,
+                        rules=rules,
+                        nii_root=args.nii_root,
+                        output_dir=output_dir,
+                    )
+                    if evaluation is not None:
+                        all_results.append(evaluation)
+                except Exception as exc:
+                    log.exception("Failed HU evaluation for ct_id=%s series=%s", ct_id, row.get("series_folder", ""))
+                    fallback = SeriesEvaluation(
+                        ct_id=int(row["ct_id"]),
+                        ct_name=str(row.get("ct_name", "")),
+                        ct_folder=str(row.get("ct_folder", "")),
+                        ct_type=str(row.get("CT_type", "") or ""),
+                        procedure_code=str(row.get("procedure_code_norm", "")).upper(),
+                        phase_name=normalize_phase(row.get("phase_name", "")),
+                        series_folder=str(row.get("series_folder", "")),
+                        series_dir=str(build_series_dir(args.nii_root, row)),
+                        reference_series_folder=None,
+                        metric_name="error",
+                        threshold=None,
+                        measurements=[],
+                        scores={},
+                        warnings=[f"Exception: {exc}"],
+                    )
+                    all_results.append(fallback)
+                finally:
+                    if progress is not None:
+                        progress.update(1)
 
     rows = []
     for result in all_results:

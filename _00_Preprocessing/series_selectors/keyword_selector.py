@@ -13,6 +13,7 @@ class KeywordSelector(SelectorStrategy):
     phase_keywords: list[str]
     include_keywords: list[str]
     exclude_keywords: list[str]
+    vascular_exclude_keywords: list[str]
     force_accept_keywords: list[str]
     exclude_keyword_veto: dict[str, list[str]]
     procedure_specific_include_only: dict[str, list[str]]
@@ -68,7 +69,12 @@ class KeywordSelector(SelectorStrategy):
 
         include_hits = [k for k in self.include_keywords if k in text]
         exclude_hits = [k for k in self.exclude_keywords if k in text]
+        if self._is_vascular(procedure):
+            exclude_hits.extend(k for k in self.vascular_exclude_keywords if k in text)
         force_accept_hits = [k for k in self.force_accept_keywords if k in text]
+
+        if exclude_hits:
+            exclude_hits = list(dict.fromkeys(exclude_hits))
 
         if self._is_vascular(procedure) and "tor" in exclude_hits:
             exclude_hits = [hit for hit in exclude_hits if hit != "tor"]

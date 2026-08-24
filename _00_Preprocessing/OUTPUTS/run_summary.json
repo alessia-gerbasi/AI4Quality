@@ -2,12 +2,12 @@
   {
     "total_series":6366,
     "status_counts":{
-      "rejected":3016,
-      "accepted":3350
+      "rejected":3048,
+      "accepted":3318
     },
     "reason_counts":{
-      "matched_exclude_keyword":1154,
-      "accepted_no_exclude_keyword":2802,
+      "matched_exclude_keyword":1186,
+      "accepted_no_exclude_keyword":2770,
       "forced_keep_keyword":548,
       "procedure_code_not_accepted":1369,
       "not_in_procedure_specific_include":188,

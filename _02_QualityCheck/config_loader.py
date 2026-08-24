@@ -36,6 +36,37 @@ def load_rules(yaml_path: Path) -> dict[str, ProcedureRule]:
     with open(yaml_path) as fh:
         raw: dict[str, dict[str, Any]] = yaml.safe_load(fh) or {}
 
+    # Unified format support:
+    # procedures:
+    #   TACXXX:
+    #     phases:
+    #       arteriosa: { rois: [...], HU: [...] }
+    #       venosa:    { rois: [...], HU: [...], HU_delta: [...] }
+    if "procedures" in raw:
+        rules: dict[str, ProcedureRule] = {}
+        procedures = raw.get("procedures") or {}
+        for code, entry in procedures.items():
+            code_norm = (code or "").strip().upper()
+            phases = (entry or {}).get("phases") or {}
+
+            art = phases.get("arteriosa") or {}
+            ven = phases.get("venosa") or {}
+
+            phase_rules: dict[str, PhaseRule] = {
+                "arteriosa": PhaseRule(
+                    rois=list(art.get("rois") or []),
+                    hu_threshold=ThresholdBand.from_list(art.get("HU")),
+                ),
+                "venosa": PhaseRule(
+                    rois=list(ven.get("rois") or []),
+                    hu_threshold=ThresholdBand.from_list(ven.get("HU")),
+                    hu_delta_threshold=ThresholdBand.from_list(ven.get("HU_delta")),
+                ),
+            }
+            rules[code_norm] = ProcedureRule(procedure_code=code_norm, phases=phase_rules)
+
+        return rules
+
     rules: dict[str, ProcedureRule] = {}
     for code, entry in raw.items():
         code_norm = (code or "").strip().upper()

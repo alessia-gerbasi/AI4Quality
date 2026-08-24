@@ -29,7 +29,7 @@ python _00_Preprocessing/main.py --config _00_Preprocessing/config/defaults.yaml
 ```bash
 python _02_QualityCheck/main.py \
 	--csv _00_Preprocessing/OUTPUTS/retained_series_unified_filtered.csv \
-	--rules _02_QualityCheck/config/roi_hu_table.yaml \
+	--rules config/common/ct_protocols.yaml \
 	--nii-root /data/alessia.gerbasi/DATA/CDI_NEXO_072026/2_nii \
 	--output-dir _02_QualityCheck/OUTPUTS
 ```

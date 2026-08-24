@@ -375,7 +375,7 @@ def main() -> int:
         _print_summary(log_file)
         return 0
 
-    roi_table_path = _SCRIPT_DIR / "config" / "roi_table.yaml"
+    roi_table_path = _SCRIPT_DIR.parent / "config" / "common" / "ct_protocols.yaml"
     mapper = RoiMapper(roi_table_path)
 
     retry_keys: set[tuple] | None = None

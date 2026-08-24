@@ -20,6 +20,7 @@ class SeriesRecord:
     series_name: str
     body_part_examined: str | None
     acquisition_time: str | None
+    contrast_bolus_start: str | None
     series_description: str | None
     series_instance_uid: str | None
     instance_count: int
