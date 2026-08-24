@@ -35,8 +35,10 @@ class RuleEvaluator:
         self.trace = []
         
         try:
+            prepared_data = self._prepare_patient_data(patient_data)
+
             # 1. Calculate derived variables
-            variables = self._calculate_variables(patient_data)
+            variables = self._calculate_variables(prepared_data)
             
             # 2. Traverse decision tree
             outcome_key = self._traverse_decisions(variables, 'root')
@@ -54,10 +56,11 @@ class RuleEvaluator:
                     'recommendations': ['Review schema decision paths']
                 }
             })
+            display_context = {**prepared_data, **variables}
             
             return {
                 'diagnosis_label': outcome.get('label', 'unknown'),
-                'card': outcome.get('card', {}),
+                'card': self._render_card(outcome.get('card', {}), display_context),
                 'decision_path': self.trace,
                 'calculated_variables': variables,
                 'success': True
@@ -79,6 +82,7 @@ class RuleEvaluator:
     def _calculate_variables(self, patient_data: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate derived variables from patient data + thresholds"""
         variables = {}
+        context = dict(patient_data or {})
         
         if 'variables' not in self.schema:
             return variables
@@ -87,14 +91,49 @@ class RuleEvaluator:
             try:
                 if 'calculation' in var_def:
                     expr = var_def['calculation']
-                    expr = self._substitute_refs(expr, patient_data, self.thresholds)
+                    expr = self._substitute_refs(expr, context, self.thresholds)
                     variables[var_name] = eval(expr)
                 elif 'source' in var_def:
-                    variables[var_name] = self._lookup_threshold(var_def, patient_data)
+                    variables[var_name] = self._lookup_threshold(var_def, context)
             except Exception as e:
                 variables[var_name] = f"ERROR: {str(e)}"
+            context[var_name] = variables[var_name]
         
         return variables
+
+    def _prepare_patient_data(self, patient_data: Dict[str, Any]) -> Dict[str, Any]:
+        prepared = dict(patient_data or {})
+
+        phase_value = prepared.get('_phase') or prepared.get('phase_name') or ''
+        prepared['_phase_norm'] = str(phase_value).strip().lower()
+
+        prepared['_acquisition_time_seconds'] = self._parse_dicom_time_to_seconds(
+            prepared.get('_current_acquisition_time')
+            or prepared.get('acquisition_time')
+            or prepared.get('AcquisitionTime')
+        )
+        prepared['_contrast_bolus_start_seconds'] = self._parse_dicom_time_to_seconds(
+            prepared.get('_current_contrast_bolus_start')
+            or prepared.get('contrast_bolus_start')
+            or prepared.get('ContrastBolusStartTime')
+        )
+        prepared['_arterial_acquisition_time_seconds'] = self._parse_dicom_time_to_seconds(
+            prepared.get('_arterial_acquisition_time')
+        )
+        prepared['_arterial_contrast_bolus_start_seconds'] = self._parse_dicom_time_to_seconds(
+            prepared.get('_arterial_contrast_bolus_start')
+        )
+
+        phase_details = self._parse_actual_phase_details(prepared.get('Actual Phase Details'))
+        prepared['_parsed_actual_phase_details'] = phase_details
+        prepared['_contrast_duration_seconds'] = self._extract_contrast_duration_seconds(
+            phase_details,
+            prepared,
+        )
+        prepared['_needle_access_normalized'] = self._normalize_text(prepared.get('Needle Access'))
+        prepared['_timing_access_offset_seconds'] = self._resolve_timing_adjustment_seconds(prepared)
+
+        return prepared
     
     def _substitute_refs(self, expr: str, patient_data: Dict, thresholds: Dict) -> str:
         """Substitute @{Column Name}, @simple_name, and $param references.
@@ -109,7 +148,7 @@ class RuleEvaluator:
         for match in re.findall(r'@\{([^}]+)\}', expr):
             val = patient_data.get(match)
             if val is not None:
-                replacement = f"'{val}'" if isinstance(val, str) else str(val)
+                replacement = repr(val) if isinstance(val, str) else str(val)
             else:
                 replacement = 'None'
             expr = expr.replace(f'@{{{match}}}', replacement)
@@ -118,7 +157,7 @@ class RuleEvaluator:
         for ref in re.findall(r'@(\w+)', expr):
             val = patient_data.get(ref)
             if val is not None:
-                replacement = f"'{val}'" if isinstance(val, str) else str(val)
+                replacement = repr(val) if isinstance(val, str) else str(val)
                 expr = expr.replace(f'@{ref}', replacement)
             else:
                 # Substitute None so Python eval can handle it gracefully
@@ -137,6 +176,169 @@ class RuleEvaluator:
         expr = expr.replace('NOT ', 'not ')
 
         return expr
+
+    def _render_card(self, card: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+        rendered = {}
+        for key, value in (card or {}).items():
+            if isinstance(value, str):
+                rendered[key] = self._interpolate_text(value, context)
+            elif isinstance(value, list):
+                rendered[key] = [self._interpolate_text(item, context) if isinstance(item, str) else item for item in value]
+            else:
+                rendered[key] = value
+        return rendered
+
+    def _interpolate_text(self, template: str, context: Dict[str, Any]) -> str:
+        if not isinstance(template, str):
+            return template
+
+        def replace_braced(match: re.Match[str]) -> str:
+            return self._format_display_value(context.get(match.group(1)))
+
+        def replace_simple(match: re.Match[str]) -> str:
+            return self._format_display_value(context.get(match.group(1)))
+
+        result = re.sub(r'@\{([^}]+)\}', replace_braced, template)
+        result = re.sub(r'@(\w+)', replace_simple, result)
+        return result
+
+    def _format_display_value(self, value: Any) -> str:
+        if value is None:
+            return 'N/A'
+        if isinstance(value, float):
+            if value.is_integer():
+                return str(int(value))
+            return f"{value:.2f}".rstrip('0').rstrip('.')
+        return str(value)
+
+    def _parse_dicom_time_to_seconds(self, value: Any) -> Any:
+        if value is None:
+            return None
+        if isinstance(value, float) and str(value) == 'nan':
+            return None
+
+        text = str(value).strip()
+        if not text or text.lower() == 'nan':
+            return None
+
+        try:
+            raw = float(text)
+        except ValueError:
+            return None
+
+        hhmmss = int(raw)
+        frac = raw - hhmmss
+        hh = hhmmss // 10000
+        mm = (hhmmss % 10000) // 100
+        ss = hhmmss % 100
+        if not (0 <= hh < 24 and 0 <= mm < 60 and 0 <= ss < 60):
+            return None
+        return hh * 3600 + mm * 60 + ss + frac
+
+    def _parse_actual_phase_details(self, value: Any) -> List[Dict[str, Any]]:
+        if value is None:
+            return []
+        if isinstance(value, float) and str(value) == 'nan':
+            return []
+
+        text = str(value).strip()
+        if not text or text.lower() == 'nan':
+            return []
+
+        entries: List[Dict[str, Any]] = []
+        for block in re.findall(r'\[([^\]]+)\]', text):
+            entry: Dict[str, Any] = {}
+            for part in block.split(','):
+                if ':' not in part:
+                    continue
+                raw_key, raw_val = part.split(':', 1)
+                key = re.sub(r'[^A-Za-z0-9]+', '', raw_key.strip())
+                val = raw_val.strip()
+                if not key:
+                    continue
+                entry[key] = self._coerce_scalar(val)
+            if entry:
+                entries.append(entry)
+        return entries
+
+    def _coerce_scalar(self, value: str) -> Any:
+        text = str(value).strip()
+        if not text:
+            return None
+        try:
+            numeric = float(text)
+        except ValueError:
+            return text
+        return int(numeric) if numeric.is_integer() else numeric
+
+    def _extract_contrast_duration_seconds(self, phase_details: List[Dict[str, Any]], patient_data: Dict[str, Any]) -> Any:
+        duration = self._extract_duration_from_phase_bounds(phase_details)
+        if duration is not None:
+            return duration
+
+        duration = self._extract_duration_from_volume_rate(phase_details)
+        if duration is not None:
+            return duration
+
+        contrast_volume = self._as_float(
+            patient_data.get('Actual Total Contrast Volume Injected (mL)')
+            or patient_data.get('Total Contrast Injected (mL)')
+        )
+        flow_rate = self._as_float(patient_data.get('Actual Contrast Avg Rate (mL/s)'))
+        if contrast_volume is not None and flow_rate not in (None, 0):
+            return contrast_volume / flow_rate
+        return None
+
+    def _extract_duration_from_phase_bounds(self, phase_details: List[Dict[str, Any]]) -> Any:
+        for entry in phase_details:
+            if not self._is_contrast_phase(entry):
+                continue
+            start = self._first_numeric(entry, ['ContrastStartSecond', 'StartSecond'])
+            stop = self._first_numeric(entry, ['NextPhaseStartSecond', 'EndSecond', 'StopSecond'])
+            if start is not None and stop is not None and stop >= start:
+                return stop - start
+        return None
+
+    def _extract_duration_from_volume_rate(self, phase_details: List[Dict[str, Any]]) -> Any:
+        total_duration = 0.0
+        found = False
+        for entry in phase_details:
+            if not self._is_contrast_phase(entry):
+                continue
+            volume = self._first_numeric(entry, ['ActualVolume', 'Volume'])
+            rate = self._first_numeric(entry, ['ActualFlowRate', 'FlowRate'])
+            if volume is None or rate in (None, 0):
+                continue
+            total_duration += volume / rate
+            found = True
+        return total_duration if found else None
+
+    def _is_contrast_phase(self, entry: Dict[str, Any]) -> bool:
+        phase_type = entry.get('PhaseType')
+        if isinstance(phase_type, (int, float)):
+            return int(phase_type) == 0
+        if isinstance(phase_type, str):
+            normalized = phase_type.strip().lower()
+            return normalized in {'0', 'contrast'}
+        return False
+
+    def _first_numeric(self, entry: Dict[str, Any], keys: List[str]) -> Any:
+        for key in keys:
+            value = self._as_float(entry.get(key))
+            if value is not None:
+                return value
+        return None
+
+    def _as_float(self, value: Any) -> Any:
+        if value is None:
+            return None
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return None
+        if str(numeric) == 'nan':
+            return None
+        return numeric
 
     def _resolve_param(self, ref: str, procedure: str) -> Any:
         """Resolve $phase.field.index from roi_hu_timing_table.
@@ -197,23 +399,46 @@ class RuleEvaluator:
         # Access value from injection history column.
         if patient_data is None:
             return value
-        access_type = str(patient_data.get('Needle Access', '')).strip().lower()
-        if not access_type:
-            return value
-
-        adjustments = self.thresholds.get('timing_adjustments', {}).get('by_access', [])
-        delta = 0
-        for rule in adjustments:
-            rule_access = str(rule.get('access_type', '')).strip().lower()
-            if rule_access and rule_access == access_type:
-                delta = rule.get('offset_seconds', 0)
-                break
+        delta = self._resolve_timing_adjustment_seconds(patient_data)
 
         if isinstance(value, list):
             return [v + delta for v in value]
         if isinstance(value, (int, float)):
             return value + delta
         return value
+
+    def _resolve_timing_adjustment_seconds(self, patient_data: Dict[str, Any]) -> int | float:
+        access_type = self._normalize_text(patient_data.get('Needle Access'))
+        if not access_type:
+            return 0
+
+        adjustments = self.thresholds.get('timing_adjustments', {}).get('by_access', [])
+        for rule in adjustments:
+            match_values = self._rule_match_values(rule)
+            if access_type in match_values:
+                return rule.get('offset_seconds', 0)
+        return 0
+
+    def _rule_match_values(self, rule: Dict[str, Any]) -> set[str]:
+        values = set()
+        for key in ('access_type', 'label'):
+            normalized = self._normalize_text(rule.get(key))
+            if normalized:
+                values.add(normalized)
+
+        for list_key in ('access_types', 'match_values', 'aliases'):
+            raw_values = rule.get(list_key, [])
+            if isinstance(raw_values, list):
+                for item in raw_values:
+                    normalized = self._normalize_text(item)
+                    if normalized:
+                        values.add(normalized)
+        return values
+
+    def _normalize_text(self, value: Any) -> str:
+        if value is None:
+            return ''
+        return str(value).strip().lower()
     
     def _traverse_decisions(self, variables: Dict, node_key: str = 'root') -> str:
         """Recursively traverse decision tree"""

@@ -7,11 +7,16 @@ version: 1
 
 # Global timing offsets applied to timing thresholds based on Injection History
 # column "Needle Access".
+# To add a new access type, append a new rule under `by_access`.
+# Each rule can match one value (`access_type`) or several values
+# (`match_values` / `aliases`) without changing Python code.
 timing_adjustments:
   by_access:
     - access_type: "femorale"
+      match_values: ["accesso femorale", "femoral"]
       offset_seconds: 25
-    - access_type: "venoso centrale"
+    - access_type: "accesso venoso"
+      match_values: ["venoso centrale", "central venous"]
       offset_seconds: -8
 
 procedures:

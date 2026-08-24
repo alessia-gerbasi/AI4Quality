@@ -1,5 +1,5 @@
 name: "Timing Analysis"
-description: "Diagnose timing-related quality failures - arterial vs venous phase"
+description: "Diagnose arterial and venous timing failures using injection timing, tolerated windows, and arterial-relative fallback for venous series"
 
 # Variables: three ways to define them
 #
@@ -13,21 +13,56 @@ description: "Diagnose timing-related quality failures - arterial vs venous phas
 #  3. calculation: mixing @columns and $phase.field.index inline
 #     $arteriosa.timing.0  ->  thresholds[procedure]['arteriosa']['timing'][0]
 
+# Notes for this schema:
+# - Contrast-only injection duration is derived from Actual Phase Details.
+# - Arterial timing is evaluated only when ContrastBolusStartTime is available.
+# - Venous timing prefers absolute delay from injection start; if that is missing,
+#   it falls back to the delay relative to the arterial acquisition time.
+# - If contrast duration < 30 s, absolute timing windows are shifted by -10 s.
+# - If contrast duration > 35 s, absolute timing windows are shifted by +10 s.
+
 variables:
-  # From Excel columns (exact column names from injection history)
-  contrast_volume_ml:
-    calculation: "@{Total Contrast Injected (mL)}"
-    unit: mL
-  flow_rate:
-    calculation: "@{Actual Contrast Avg Rate (mL/s)}"
-    unit: mL/s
-  injection_duration_s:
-    calculation: "@{Actual Total Duration (s)}"
-    unit: seconds
   access_type:
     calculation: "@{Needle Access}"
+  access_type_normalized:
+    calculation: "@_needle_access_normalized"
+  access_timing_offset_s:
+    calculation: "@_timing_access_offset_seconds"
+    unit: seconds
 
-  # Threshold lookups — values come from config/common/ct_protocols.yaml for the current procedure
+  phase_is_arterial:
+    calculation: "@_phase_norm == 'arteriosa'"
+  phase_is_venous:
+    calculation: "@_phase_norm == 'venosa'"
+
+  contrast_duration_s:
+    calculation: "@_contrast_duration_seconds"
+    unit: seconds
+  acquisition_time_s:
+    calculation: "@_acquisition_time_seconds"
+    unit: seconds
+  current_bolus_start_s:
+    calculation: "@_contrast_bolus_start_seconds"
+    unit: seconds
+  arterial_acquisition_time_s:
+    calculation: "@_arterial_acquisition_time_seconds"
+    unit: seconds
+
+  has_acquisition_time:
+    calculation: "@acquisition_time_s != None"
+  has_current_bolus_start:
+    calculation: "@current_bolus_start_s != None"
+  has_arterial_reference:
+    calculation: "@arterial_acquisition_time_s != None"
+
+  duration_shift_s:
+    calculation: "-10 if @contrast_duration_s != None and @contrast_duration_s < 30 else (10 if @contrast_duration_s != None and @contrast_duration_s > 35 else 0)"
+    unit: seconds
+  duration_profile_label:
+    calculation: "'short contrast injection (<30 s, absolute windows shifted -10 s)' if @contrast_duration_s != None and @contrast_duration_s < 30 else ('long contrast injection (>35 s, absolute windows shifted +10 s)' if @contrast_duration_s != None and @contrast_duration_s > 35 else 'standard contrast injection (base timing windows)')"
+  access_profile_label:
+    calculation: "'Needle Access not available or no timing offset configured' if @access_type == None else ('Needle Access: ' + @access_type + ' (timing offset ' + ('+' if @access_timing_offset_s > 0 else '') + str(@access_timing_offset_s) + ' s)' if @access_timing_offset_s != 0 else 'Needle Access: ' + @access_type + ' (no timing offset)')"
+
   arterial_timing_min:
     source: roi_hu_timing_table
     phase: arteriosa
@@ -49,50 +84,174 @@ variables:
     field: timing
     index: 3
 
-  # Example derived calculation (commented out until columns are confirmed):
-  # contrast_dose_per_kg:
-  #   calculation: "@{Total Contrast Injected (mL)} / @{Patient Weight}"
+  venous_timing_min:
+    source: roi_hu_timing_table
+    phase: venosa
+    field: timing
+    index: 0
+  venous_timing_max:
+    source: roi_hu_timing_table
+    phase: venosa
+    field: timing
+    index: 1
+  venous_timing_min_threshold:
+    source: roi_hu_timing_table
+    phase: venosa
+    field: timing
+    index: 2
+  venous_timing_max_threshold:
+    source: roi_hu_timing_table
+    phase: venosa
+    field: timing
+    index: 3
+
+  arterial_timing_acc_min:
+    calculation: "@arterial_timing_min_threshold if @arterial_timing_min_threshold != None else @arterial_timing_min"
+  arterial_timing_acc_max:
+    calculation: "@arterial_timing_max_threshold if @arterial_timing_max_threshold != None else @arterial_timing_max"
+  venous_timing_acc_min:
+    calculation: "@venous_timing_min_threshold if @venous_timing_min_threshold != None else @venous_timing_min"
+  venous_timing_acc_max:
+    calculation: "@venous_timing_max_threshold if @venous_timing_max_threshold != None else @venous_timing_max"
+
+  absolute_timing_value_s:
+    calculation: "@acquisition_time_s - @current_bolus_start_s if @has_acquisition_time and @has_current_bolus_start else None"
+    unit: seconds
+  relative_to_arterial_value_s:
+    calculation: "@acquisition_time_s - @arterial_acquisition_time_s if @phase_is_venous and @has_acquisition_time and @has_arterial_reference else None"
+    unit: seconds
+  use_relative_venous_timing:
+    calculation: "@phase_is_venous and (not @has_current_bolus_start) and @has_arterial_reference"
+
+  absolute_opt_min_s:
+    calculation: "(@arterial_timing_min if @phase_is_arterial else @venous_timing_min) + @duration_shift_s"
+  absolute_opt_max_s:
+    calculation: "(@arterial_timing_max if @phase_is_arterial else @venous_timing_max) + @duration_shift_s"
+  absolute_acc_min_s:
+    calculation: "(@arterial_timing_acc_min if @phase_is_arterial else @venous_timing_acc_min) + @duration_shift_s"
+  absolute_acc_max_s:
+    calculation: "(@arterial_timing_acc_max if @phase_is_arterial else @venous_timing_acc_max) + @duration_shift_s"
+
+  venous_relative_opt_min_s:
+    calculation: "@venous_timing_min - @arterial_timing_max"
+  venous_relative_opt_max_s:
+    calculation: "@venous_timing_max - @arterial_timing_min"
+  venous_relative_acc_min_s:
+    calculation: "@venous_timing_acc_min - @arterial_timing_acc_max"
+  venous_relative_acc_max_s:
+    calculation: "@venous_timing_acc_max - @arterial_timing_acc_min"
+
+  timing_value_s:
+    calculation: "@relative_to_arterial_value_s if @use_relative_venous_timing else @absolute_timing_value_s"
+  timing_opt_min_s:
+    calculation: "@venous_relative_opt_min_s if @use_relative_venous_timing else @absolute_opt_min_s"
+  timing_opt_max_s:
+    calculation: "@venous_relative_opt_max_s if @use_relative_venous_timing else @absolute_opt_max_s"
+  timing_acc_min_s:
+    calculation: "@venous_relative_acc_min_s if @use_relative_venous_timing else @absolute_acc_min_s"
+  timing_acc_max_s:
+    calculation: "@venous_relative_acc_max_s if @use_relative_venous_timing else @absolute_acc_max_s"
+
+  timing_reference_label:
+    calculation: "'delay from arterial acquisition' if @use_relative_venous_timing else 'delay from injection start'"
+  timing_mode_label:
+    calculation: "'venous relative timing fallback' if @use_relative_venous_timing else ('arterial absolute timing' if @phase_is_arterial else 'venous absolute timing')"
+  evaluable_timing:
+    calculation: "@has_acquisition_time and ((@phase_is_arterial and @has_current_bolus_start) or (@phase_is_venous and (@has_current_bolus_start or @has_arterial_reference)))"
+  missing_data_message:
+    calculation: "'Arterial timing requires both AcquisitionTime and ContrastBolusStartTime.' if @phase_is_arterial else 'Venous timing requires AcquisitionTime plus either ContrastBolusStartTime or an arterial acquisition reference.'"
+
+  # Helpful display values for the dashboard card
+  reference_series_folder:
+    calculation: "@_arterial_series_folder"
 
 decisions:
   root:
-    question: "Is injection duration within arterial window"
-    condition: "@injection_duration_s >= @arterial_timing_min AND @injection_duration_s <= @arterial_timing_max"
-    if_true: outcome_timing_ok_arterial
+    question: "Is this a supported contrast-enhanced arterial or venous series?"
+    condition: "@phase_is_arterial OR @phase_is_venous"
+    if_true: check_timing_inputs
+    if_false: outcome_not_supported
+
+  check_timing_inputs:
+    question: "Is enough timing information available for this phase?"
+    condition: "@evaluable_timing"
+    if_true: check_tolerated_window
+    if_false: outcome_missing_timing_data
+
+  check_tolerated_window:
+    question: "Is measured timing within the tolerated window?"
+    condition: "@timing_value_s >= @timing_acc_min_s AND @timing_value_s <= @timing_acc_max_s"
+    if_true: check_optimal_window
     if_false: check_direction
+
+  check_optimal_window:
+    question: "Is measured timing within the optimal window?"
+    condition: "@timing_value_s >= @timing_opt_min_s AND @timing_value_s <= @timing_opt_max_s"
+    if_true: outcome_timing_optimal
+    if_false: outcome_timing_tolerated
 
   check_direction:
     question: "Did acquisition start too early?"
-    condition: "@injection_duration_s < @arterial_timing_min"
+    condition: "@timing_value_s < @timing_acc_min_s"
     if_true: outcome_early
     if_false: outcome_late
 
 outcomes:
-  outcome_timing_ok_arterial:
-    label: "timing_ok"
+  outcome_timing_optimal:
+    label: "timing_ok_optimal"
     card:
-      title: "\u2713 Timing within arterial window"
-      explanation: "Acquisition started at optimal time for bolus arrival at ROI"
-      impact: "Quality not limited by timing. Expected good arterial enhancement."
+      title: "\u2713 Timing within optimal window"
+      explanation: "Measured @timing_reference_label: @timing_value_s s. Optimal window: [@timing_opt_min_s, @timing_opt_max_s] s. Tolerated window: [@timing_acc_min_s, @timing_acc_max_s] s. Mode: @timing_mode_label. Injection profile: @duration_profile_label. @access_profile_label."
+      impact: "Timing is not limiting image quality. The acquisition falls inside the protocol's optimal enhancement window."
       recommendations: []
+
+  outcome_timing_tolerated:
+    label: "timing_ok_tolerated"
+    card:
+      title: "\u26a0 Timing within tolerated range only"
+      explanation: "Measured @timing_reference_label: @timing_value_s s. This is acceptable because it is inside [@timing_acc_min_s, @timing_acc_max_s] s, but it is outside the optimal interval [@timing_opt_min_s, @timing_opt_max_s] s. Mode: @timing_mode_label. Injection profile: @duration_profile_label. @access_profile_label."
+      impact: "Timing is still acceptable, but being outside the optimal window may reduce arterial conspicuity or increase venous contamination."
+      recommendations:
+        - "Review whether the protocol delay should be fine-tuned toward the optimal window."
+        - "Correlate with the measured HU reduction before changing the protocol broadly."
 
   outcome_early:
     label: "early"
     card:
       title: "\u26a0 Acquisition started too early"
-      explanation: "Bolus has not yet arrived at ROI when acquisition began"
+      explanation: "Measured @timing_reference_label: @timing_value_s s. Expected tolerated window: [@timing_acc_min_s, @timing_acc_max_s] s, with optimal interval [@timing_opt_min_s, @timing_opt_max_s] s. Mode: @timing_mode_label. Injection profile: @duration_profile_label. @access_profile_label."
       impact: "Suboptimal HU enhancement in arterial phase, poor image quality"
       recommendations:
         - "Increase injection-to-acquisition delay in protocol"
         - "Verify patient bolus arrival time vs protocol expectation"
-        - "Check if bolus tracking was used (if available)"
+        - "Check bolus tracking for early trigger, wrong ROI, or insufficient delay after trigger"
 
   outcome_late:
     label: "late"
     card:
       title: "\u26a0 Acquisition started too late"
-      explanation: "Bolus already peaked and washing out when acquisition started"
+      explanation: "Measured @timing_reference_label: @timing_value_s s. Expected tolerated window: [@timing_acc_min_s, @timing_acc_max_s] s, with optimal interval [@timing_opt_min_s, @timing_opt_max_s] s. Mode: @timing_mode_label. Injection profile: @duration_profile_label. @access_profile_label."
       impact: "Reduced arterial enhancement, poor tissue discrimination, venous contamination"
       recommendations:
         - "Decrease injection-to-acquisition delay in protocol"
         - "Consider reducing bolus volume or increasing injection rate"
         - "Review patient-specific anatomy delays"
+
+  outcome_missing_timing_data:
+    label: "timing_data_missing"
+    card:
+      title: "\u26a0 Timing not evaluable"
+      explanation: "@missing_data_message Current mode would have been: @timing_mode_label. If an arterial reference was found, it is: @reference_series_folder. @access_profile_label."
+      impact: "No timing diagnosis can be assigned reliably for this series."
+      recommendations:
+        - "Check whether DICOM metadata contains AcquisitionTime and ContrastBolusStartTime."
+        - "For venous series, verify that an arterial series from the same exam is available."
+
+  outcome_not_supported:
+    label: "phase_not_supported"
+    card:
+      title: "\u26a0 Phase not supported by timing schema"
+      explanation: "This schema currently evaluates only arteriosa and venosa series. Current phase: @_phase_norm."
+      impact: "No timing-specific RCA is generated for this series."
+      recommendations:
+        - "Run the schema on arterial or venous acquisitions only."

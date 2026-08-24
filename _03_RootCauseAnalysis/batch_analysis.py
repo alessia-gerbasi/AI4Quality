@@ -22,6 +22,7 @@ BASE          = Path(__file__).parent
 SCHEMA_DIR    = BASE / 'schemas'
 THRESHOLD_CFG = BASE.parent / 'config' / 'common' / 'ct_protocols.yaml'
 QC_RESULTS    = BASE.parent / '_02_QualityCheck' / 'OUTPUTS' / 'roi_hu_qc_results.csv'
+SERIES_TABLE  = BASE.parent / '_00_Preprocessing' / 'OUTPUTS' / 'retained_series_unified_filtered.csv'
 LINK_TABLE    = BASE.parent.parent / 'DATA' / 'CDI_NEXO_072026' / '0_files' / 'link_anonymization.xlsx'
 INJECTION_XLS = BASE.parent.parent / 'DATA' / 'CDI_NEXO_072026' / '0_files' / 'Injection History Anonymized.xlsx'
 DEFAULT_OUT   = BASE / 'rca_results.csv'
@@ -33,6 +34,7 @@ def load_data():
     """Load and join QC results → link table → injection history."""
 
     qc = pd.read_csv(QC_RESULTS)
+    series = pd.read_csv(SERIES_TABLE)
     link = pd.read_excel(LINK_TABLE)          # columns: ID, PAT_N, index
     inj = pd.read_excel(INJECTION_XLS)
 
@@ -45,7 +47,76 @@ def load_data():
         on='_link_id', how='left'
     )
 
-    return merged, inj
+    return merged, inj, series
+
+
+def _parse_dicom_time_to_seconds(value: object) -> float | None:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+
+    text = str(value).strip()
+    if not text:
+        return None
+
+    try:
+        raw = float(text)
+    except ValueError:
+        return None
+
+    hhmmss = int(raw)
+    frac = raw - hhmmss
+    hh = hhmmss // 10000
+    mm = (hhmmss % 10000) // 100
+    ss = hhmmss % 100
+    if not (0 <= hh < 24 and 0 <= mm < 60 and 0 <= ss < 60):
+        return None
+    return hh * 3600 + mm * 60 + ss + frac
+
+
+def build_patient_context(patient_data: dict, series_df: pd.DataFrame,
+                          ct_folder: str, series_folder: str,
+                          phase_name: str, procedure_code: str) -> dict:
+    """Attach DICOM timing metadata for the current series and arterial reference."""
+    context = dict(patient_data or {})
+    context['_ct_folder'] = ct_folder
+    context['_series_folder'] = series_folder
+    context['_phase'] = phase_name
+    context['_procedure_code'] = procedure_code
+
+    ct_series = series_df[series_df['ct_folder'].astype(str) == str(ct_folder)].copy()
+    current = ct_series[ct_series['series_folder'].astype(str) == str(series_folder)]
+    if current.empty:
+        current = ct_series[
+            (ct_series['series_folder'].astype(str) == str(series_folder))
+            & (ct_series['procedure_code_value'].astype(str) == str(procedure_code))
+        ]
+
+    current_row = current.iloc[0] if not current.empty else None
+    if current_row is not None:
+        context['_current_acquisition_time'] = current_row.get('acquisition_time')
+        context['_current_contrast_bolus_start'] = current_row.get('contrast_bolus_start')
+
+    arterial = ct_series[
+        ct_series['phase_name'].fillna('').astype(str).str.strip().str.lower() == 'arteriosa'
+    ].copy()
+    if procedure_code:
+        same_proc = arterial[arterial['procedure_code_value'].astype(str) == str(procedure_code)]
+        if not same_proc.empty:
+            arterial = same_proc
+
+    if not arterial.empty:
+        if current_row is not None:
+            current_seconds = _parse_dicom_time_to_seconds(current_row.get('acquisition_time'))
+            arterial['_acq_seconds'] = arterial['acquisition_time'].apply(_parse_dicom_time_to_seconds)
+            if current_seconds is not None and arterial['_acq_seconds'].notna().any():
+                arterial['_delta'] = (arterial['_acq_seconds'] - current_seconds).abs()
+                arterial = arterial.sort_values('_delta')
+        arterial_row = arterial.iloc[0]
+        context['_arterial_acquisition_time'] = arterial_row.get('acquisition_time')
+        context['_arterial_contrast_bolus_start'] = arterial_row.get('contrast_bolus_start')
+        context['_arterial_series_folder'] = arterial_row.get('series_folder')
+
+    return context
 
 
 def get_injection_record(inj_df: pd.DataFrame, injection_index: str,
@@ -75,7 +146,7 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
         raise FileNotFoundError(f"Threshold config not found: {THRESHOLD_CFG}")
 
     print(f"Loading data...")
-    merged, inj = load_data()
+    merged, inj, series_df = load_data()
 
     # Filter to critical series only (unique per series, not per ROI)
     critical = merged[merged['status'].isin(statuses)].copy()
@@ -102,6 +173,14 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
         procedure_code  = row.get('procedure_code', '')
 
         patient_data = get_injection_record(inj, injection_index, procedure_code)
+        patient_data = build_patient_context(
+            patient_data,
+            series_df,
+            row.get('ct_folder', ''),
+            row.get('series_folder', ''),
+            row.get('phase_name', ''),
+            procedure_code,
+        )
 
         result = evaluator.evaluate(patient_data)
 

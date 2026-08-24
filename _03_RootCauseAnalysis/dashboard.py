@@ -10,10 +10,18 @@ from pathlib import Path
 try:
     from rule_engine import RuleEvaluator
     from excel_loader import ExcelLoader
-    from batch_analysis import run_batch, DEFAULT_OUT, SCHEMA_DIR as BATCH_SCHEMA_DIR
+    from batch_analysis import run_batch, DEFAULT_OUT, SCHEMA_DIR as BATCH_SCHEMA_DIR, build_patient_context
 except ImportError as e:
     st.error(f"Import error: {e}")
     st.stop()
+
+
+def _label_colors(label: str) -> tuple[str, str]:
+    if label == 'timing_ok_optimal':
+        return '#e8f5e9', '#388e3c'
+    if label in {'timing_ok_tolerated', 'timing_data_missing', 'phase_not_supported'}:
+        return '#fff8e1', '#f9a825'
+    return '#ffebee', '#c62828'
 
 
 def main():
@@ -46,6 +54,7 @@ def main():
         try:
             qc_df   = pd.read_csv(qc_path)
             link_df = pd.read_excel(link_path)           # columns: ID, PAT_N, index
+            series_df = pd.read_csv(base_path.parent / '_00_Preprocessing' / 'OUTPUTS' / 'retained_series_unified_filtered.csv')
             inj_loader = ExcelLoader(str(excel_path))
             inj_loader.load()
         except Exception as e:
@@ -105,11 +114,14 @@ def main():
                 match = rows[rows['Order Procedure'].astype(str) == str(procedure_code)]
                 patient_data = (match.iloc[0] if not match.empty else rows.iloc[0]).to_dict() if not rows.empty else {}
 
-            # Merge QC context so schema conditions can reference it
-            patient_data['_ct_folder']      = selected_folder
-            patient_data['_series_folder']  = selected_series
-            patient_data['_phase']          = phase_name
-            patient_data['_procedure_code'] = procedure_code
+            patient_data = build_patient_context(
+                patient_data,
+                series_df,
+                selected_folder,
+                selected_series,
+                phase_name,
+                procedure_code,
+            )
 
             try:
                 evaluator = RuleEvaluator(str(schema_dir / f'{selected_schema}.yaml'), str(thresh_path))
@@ -141,8 +153,7 @@ def main():
             label = result.get('diagnosis_label', 'unknown')
 
             if result.get('success'):
-                status_color = '#e8f5e9' if label == 'timing_ok' else '#fff8e1' if label == 'early' else '#ffebee'
-                border_color = '#388e3c' if label == 'timing_ok' else '#f9a825' if label == 'early' else '#c62828'
+                status_color, border_color = _label_colors(label)
 
                 st.markdown(
                     f"""
@@ -244,8 +255,7 @@ def main():
                                        format_func=lambda i: f"{view.loc[i,'ct_folder']} | {view.loc[i,'series_folder']}")
                 row = view.loc[row_idx]
                 label = row['rca_label']
-                status_color = '#e8f5e9' if label == 'timing_ok' else '#fff8e1' if label == 'early' else '#ffebee'
-                border_color = '#388e3c' if label == 'timing_ok' else '#f9a825' if label == 'early' else '#c62828'
+                status_color, border_color = _label_colors(label)
                 st.markdown(
                     f"""<div style="background:{status_color}; border-left:6px solid {border_color};
                                    padding:16px 20px; border-radius:8px; margin-bottom:12px;">
