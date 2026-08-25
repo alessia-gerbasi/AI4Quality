@@ -1,0 +1,124 @@
+name: "Other Causes Analysis"
+description: "Evaluate renal function, conditional liver enhancement, and injection notes"
+
+variables:
+  egfr:
+    calculation: "@{eGFR (-1 = N/A)}"
+  has_egfr:
+    calculation: "@egfr != None and @egfr >= 0"
+  has_noncontrast_series:
+    calculation: "@_has_noncontrast_series"
+  liver_problem_present:
+    calculation: "@_liver_problem_present"
+  liver_hu_precontrast:
+    calculation: "@_liver_hu_precontrast"
+  has_liver_hu_precontrast:
+    calculation: "@liver_hu_precontrast != None"
+  injection_notes:
+    calculation: "@{Injection Notes}"
+  injection_report:
+    calculation: "@{Injection Reports(Custom)}"
+  has_note:
+    calculation: "str(@injection_notes).strip().lower() not in ['', 'none', 'nan'] or str(@injection_report).strip().lower() not in ['', 'none', 'nan']"
+  note_text:
+    calculation: "('Injection Notes: ' + str(@injection_notes) if str(@injection_notes).strip().lower() not in ['', 'none', 'nan'] else '') + ('; Injection Reports(Custom): ' + str(@injection_report) if str(@injection_report).strip().lower() not in ['', 'none', 'nan'] else '')"
+
+independent_checks:
+  - name: egfr
+    question: "Is eGFR 90 or higher?"
+    available_condition: "@has_egfr"
+    condition: "@egfr >= 90"
+    outcome: outcome_egfr_normal
+    report_outcome: outcome_egfr_normal
+    low_outcome: outcome_egfr_moderate
+    high_outcome: outcome_egfr_severe
+    high_condition: "@egfr <= 30"
+    missing_outcome: outcome_egfr_missing
+  - name: liver_enhancement
+    question: "Is average precontrast liver HU within 40-70 HU?"
+    available_condition: "@has_noncontrast_series and @liver_problem_present and @has_liver_hu_precontrast"
+    condition: "@liver_hu_precontrast >= 40 and @liver_hu_precontrast <= 70"
+    outcome: outcome_liver_normal
+    report_outcome: outcome_liver_normal
+    low_outcome: outcome_liver_hypo
+    high_outcome: outcome_liver_hyper
+    high_condition: "@liver_hu_precontrast > 70"
+    skip_if_unavailable: true
+  - name: injection_note
+    question: "Is an injection note available?"
+    available_condition: "@has_note"
+    condition: "True"
+    report_outcome: outcome_note
+    skip_if_unavailable: true
+
+decisions:
+  root:
+    question: "Are other causes being evaluated?"
+    condition: "True"
+    if_true: outcome_other_summary
+    if_false: outcome_other_summary
+
+outcomes:
+  outcome_other_summary:
+    label: "other_analysis"
+    card:
+      title: "Other causes evaluated"
+      explanation: "Independent renal, conditional liver, and injection-note checks were evaluated."
+      impact: "See the individual findings below."
+      recommendations: []
+  outcome_egfr_normal:
+    label: "egfr_normal"
+    card:
+      title: "Normal renal function"
+      explanation: "eGFR: @egfr ml/min/1.73 m2. Stage 1: 90 or higher."
+      impact: "Kidney function is in the normal or high range."
+      recommendations: []
+  outcome_egfr_moderate:
+    label: "egfr_moderate_loss"
+    card:
+      title: "Moderate loss of kidney function: at-risk patient"
+      explanation: "eGFR: @egfr ml/min/1.73 m2. Stage 2-3a range: 31-89."
+      impact: "Renal function is reduced and may be relevant when reviewing contrast administration."
+      recommendations: []
+  outcome_egfr_severe:
+    label: "egfr_severe_damage"
+    card:
+      title: "Severe kidney damage"
+      explanation: "eGFR: @egfr ml/min/1.73 m2. Stage 4-5 range: 30 or lower."
+      impact: "Severely reduced renal function should be considered in the clinical review."
+      recommendations: []
+  outcome_egfr_missing:
+    label: "egfr_unavailable"
+    card:
+      title: "eGFR unavailable"
+      explanation: "The eGFR value is missing or marked as unavailable in the injection history."
+      impact: "Renal-function assessment cannot be assigned from the available data."
+      recommendations: ["Review eGFR and renal-function data in the patient record."]
+  outcome_liver_normal:
+    label: "liver_precontrast_hu_normal"
+    card:
+      title: "No abnormal precontrast liver HU"
+      explanation: "Average precontrast liver HU: @liver_hu_precontrast. The value is within [40, 70] HU."
+      impact: "No hypo- or hyperenhanced precontrast liver condition was identified."
+      recommendations: []
+  outcome_liver_hypo:
+    label: "liver_hypoenhanced"
+    card:
+      title: "Hypo-enhanced liver condition"
+      explanation: "Average precontrast liver HU: @liver_hu_precontrast HU, below 40 HU."
+      impact: "Low precontrast liver attenuation may contribute to the liver quality finding."
+      recommendations: []
+  outcome_liver_hyper:
+    label: "liver_hyperenhanced"
+    card:
+      title: "Liver hyperenhanced condition"
+      explanation: "Average precontrast liver HU: @liver_hu_precontrast HU, above 70 HU."
+      impact: "High precontrast liver attenuation may contribute to the liver quality finding."
+      recommendations: []
+  outcome_note:
+    label: "injection_note"
+    card:
+      title: "Injection note"
+      explanation: "@note_text"
+      impact: "The recorded injection note may provide context for the quality finding."
+      recommendations: []

@@ -1,6 +1,7 @@
 import yaml
 from typing import Dict, Any, Tuple, List
 from pathlib import Path
+import math
 import re
 
 class RuleEvaluator:
@@ -24,7 +25,7 @@ class RuleEvaluator:
         if isinstance(proc, dict):
             phases = proc.get('phases', {})
             if isinstance(phases, dict):
-                return phases
+                return {**phases, **{key: value for key, value in proc.items() if key != 'phases'}}
 
         # Legacy format where procedure is top-level
         proc_legacy = self.thresholds.get(procedure, {}) if isinstance(self.thresholds, dict) else {}
@@ -40,7 +41,9 @@ class RuleEvaluator:
             # 1. Calculate derived variables
             variables = self._calculate_variables(prepared_data)
             
-            # 2. Traverse decision tree
+            # 2. Traverse either an independent checklist or a decision tree.
+            if self.schema.get('independent_checks'):
+                return self._evaluate_independent_checks(prepared_data, variables)
             outcome_key = self._traverse_decisions(variables, 'root')
             
             # 3. Get outcome card
@@ -78,6 +81,98 @@ class RuleEvaluator:
                 'calculated_variables': {},
                 'success': False
             }
+
+    def _evaluate_independent_checks(self, prepared_data: Dict[str, Any], variables: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate every checklist item and combine all failed outcomes."""
+        display_context = {**prepared_data, **variables}
+        failures = []
+
+        for check in self.schema.get('independent_checks', []):
+            name = check.get('name', 'unnamed_check')
+            condition = check.get('condition', 'False')
+            available_condition = check.get('available_condition')
+            available = True
+            if available_condition:
+                available = self._evaluate_condition(available_condition, variables)
+                self.trace.append({
+                    'node': name,
+                    'question': check.get('question', name),
+                    'condition': available_condition,
+                    'substituted_condition': self._substitute_refs(available_condition, variables, {}),
+                    'result': available,
+                })
+
+            if not available:
+                if check.get('skip_if_unavailable'):
+                    continue
+                outcome_key = check.get('missing_outcome', 'outcome_missing_data')
+                passed = False
+            elif check.get('report_outcome'):
+                if self._evaluate_condition(check.get('condition', 'False'), variables):
+                    failures.append(check['report_outcome'])
+                elif check.get('high_condition') and self._evaluate_condition(check['high_condition'], variables):
+                    failures.append(check.get('high_outcome', check['report_outcome']))
+                else:
+                    failures.append(check.get('low_outcome', check['report_outcome']))
+                continue
+            else:
+                substituted = self._substitute_refs(condition, variables, {})
+                passed = self._evaluate_condition(condition, variables)
+                self.trace.append({
+                    'node': name,
+                    'question': check.get('question', name),
+                    'condition': condition,
+                    'substituted_condition': substituted,
+                    'result': passed,
+                })
+                if passed:
+                    outcome_key = None
+                elif check.get('high_condition') and self._evaluate_condition(check['high_condition'], variables):
+                    outcome_key = check.get('high_outcome', check.get('outcome'))
+                else:
+                    outcome_key = check.get('low_outcome', check.get('outcome'))
+
+            if not passed and outcome_key:
+                failures.append(outcome_key)
+
+        if not failures:
+            outcome_keys = ['outcome_protocol_ok']
+        else:
+            outcome_keys = list(dict.fromkeys(failures))
+
+        outcomes = self.schema.get('outcomes', {})
+        cards = [self._render_card(outcomes[key].get('card', {}), display_context)
+                 for key in outcome_keys if key in outcomes]
+        if not cards:
+            raise ValueError('Independent checks did not resolve to valid outcomes')
+
+        labels = [outcomes[key].get('label', 'unknown') for key in outcome_keys if key in outcomes]
+        recommendations = list(dict.fromkeys(
+            recommendation
+            for card in cards
+            for recommendation in card.get('recommendations', [])
+        ))
+        combined_card = {
+            'title': cards[0].get('title', 'Protocol analysis') if len(cards) == 1 else 'Protocol check results',
+            'explanation': '\n'.join(card.get('explanation', '') for card in cards),
+            'impact': '\n'.join(card.get('impact', '') for card in cards),
+            'recommendations': recommendations,
+        }
+        return {
+            'diagnosis_label': labels[0] if labels else 'unknown',
+            'diagnoses': labels,
+            'cards': cards,
+            'card': combined_card,
+            'decision_path': self.trace,
+            'calculated_variables': variables,
+            'success': True,
+        }
+
+    def _evaluate_condition(self, condition: str, variables: Dict[str, Any]) -> bool:
+        try:
+            return bool(eval(self._substitute_refs(condition, variables, {})))
+        except Exception:
+            return False
     
     def _calculate_variables(self, patient_data: Dict[str, Any]) -> Dict[str, Any]:
         """Calculate derived variables from patient data + thresholds"""
@@ -132,8 +227,50 @@ class RuleEvaluator:
         )
         prepared['_needle_access_normalized'] = self._normalize_text(prepared.get('Needle Access'))
         prepared['_timing_access_offset_seconds'] = self._resolve_timing_adjustment_seconds(prepared)
+        prepared['_contrast_flow_rate_from_data_points'] = self._extract_contrast_flow_rate(
+            prepared.get('Actual Flow-Rate Data Points')
+        )
+        prepared['_protocol_mismatch_details'] = self._protocol_mismatch_details(prepared)
 
         return prepared
+
+    def _extract_contrast_flow_rate(self, value: Any) -> Any:
+        if self._is_missing_value(value):
+            return None
+        text = str(value)
+        contrast_blocks = re.findall(
+            r'PhaseType\s*:\s*Contrast.*?\[Time,\s*Value\]\s*:\s*(.*?);\s*\]',
+            text,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        samples = []
+        for block in contrast_blocks:
+            samples.extend(float(raw_value) for raw_value in re.findall(
+                r'\[\s*[-+]?\d+(?:\.\d+)?\s*,\s*([-+]?\d+(?:\.\d+)?)\s*\]',
+                block,
+            ))
+        return sum(samples) / len(samples) if samples else None
+
+    def _protocol_mismatch_details(self, patient_data: Dict[str, Any]) -> str:
+        comparisons = [
+            ('Contrast volume', 'Programmed Total Contrast Volume (mL)', 'Actual Total Contrast Volume Injected (mL)'),
+            ('Contrast dose', 'Programmed Total Contrast Dose (gI)', 'Actual Total Contrast Dose (gI)'),
+            ('Saline volume', 'Programmed Total Saline Volume (mL)', 'Actual Total Saline Volume Injected (mL)'),
+        ]
+        mismatches = []
+        for label, programmed_key, actual_key in comparisons:
+            programmed = patient_data.get(programmed_key)
+            actual = patient_data.get(actual_key)
+            if self._is_missing_value(programmed) or self._is_missing_value(actual):
+                mismatches.append(f'{label}: programmed={self._format_display_value(programmed)}, actual={self._format_display_value(actual)}')
+                continue
+            try:
+                equal = abs(float(programmed) - float(actual)) <= 2
+            except (TypeError, ValueError):
+                equal = str(programmed).strip() == str(actual).strip()
+            if not equal:
+                mismatches.append(f'{label}: programmed={self._format_display_value(programmed)}, actual={self._format_display_value(actual)}')
+        return '; '.join(mismatches) if mismatches else 'No mismatches'
     
     def _substitute_refs(self, expr: str, patient_data: Dict, thresholds: Dict) -> str:
         """Substitute @{Column Name}, @simple_name, and $param references.
@@ -147,7 +284,7 @@ class RuleEvaluator:
         # 1. @{Column Name With Spaces}
         for match in re.findall(r'@\{([^}]+)\}', expr):
             val = patient_data.get(match)
-            if val is not None:
+            if not self._is_missing_value(val):
                 replacement = repr(val) if isinstance(val, str) else str(val)
             else:
                 replacement = 'None'
@@ -156,7 +293,7 @@ class RuleEvaluator:
         # 2. @simple_name
         for ref in re.findall(r'@(\w+)', expr):
             val = patient_data.get(ref)
-            if val is not None:
+            if not self._is_missing_value(val):
                 replacement = repr(val) if isinstance(val, str) else str(val)
                 expr = expr.replace(f'@{ref}', replacement)
             else:
@@ -176,6 +313,16 @@ class RuleEvaluator:
         expr = expr.replace('NOT ', 'not ')
 
         return expr
+
+    def _is_missing_value(self, value: Any) -> bool:
+        if value is None:
+            return True
+        if isinstance(value, str):
+            return value.strip().lower() in {'', 'nan', 'none', 'null'}
+        try:
+            return bool(math.isnan(value))
+        except (TypeError, ValueError):
+            return False
 
     def _render_card(self, card: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
         rendered = {}
@@ -378,10 +525,13 @@ class RuleEvaluator:
         index = var_def.get('index')
 
         proc_data = self._get_procedure_data(procedure)
-        phase_data = proc_data.get(phase, {})
-        if not isinstance(phase_data, dict):
-            return None
-        values = phase_data.get(field)
+        if field in proc_data:
+            values = proc_data.get(field)
+        else:
+            phase_data = proc_data.get(phase, {})
+            if not isinstance(phase_data, dict):
+                return None
+            values = phase_data.get(field)
         if values is None:
             return None
         if index is not None and isinstance(values, list):

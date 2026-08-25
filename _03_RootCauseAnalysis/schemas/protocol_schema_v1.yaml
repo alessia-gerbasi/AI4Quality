@@ -1,0 +1,307 @@
+name: "Protocol Analysis"
+description: "Check injector pressure, contrast load, saline volume, IDR, flow rate, and execution against the planned protocol"
+
+variables:
+  pressure_psi:
+    calculation: "@{Max Pressure}"
+  saline_volume_ml:
+    calculation: "@{Actual Total Saline Volume Injected (mL)}"
+  contrast_dose_g:
+    calculation: "@{Actual Total Contrast Dose (gI)}"
+  contrast_concentration_mg_ml:
+    calculation: "@{Contrast Concentration}"
+  contrast_volume_ml:
+    calculation: "@{Actual Total Contrast Volume Injected (mL)}"
+  flow_rate_ml_s:
+    calculation: "@_contrast_flow_rate_from_data_points"
+  injection_duration_s:
+    calculation: "@{Actual Total Duration (s)}"
+  idr_result_g_s:
+    calculation: "@contrast_dose_g / @injection_duration_s if @injection_duration_s not in (None, 0) and @contrast_dose_g != None else None"
+  patient_weight_kg:
+    calculation: "@{Patient Weight}"
+  scanner_name:
+    calculation: "@Scanner"
+  scanner_name_normalized:
+    calculation: "str(@scanner_name).strip().lower()"
+  scanner_type:
+    calculation: "'Photon Counting CT' if 'naeotom' in @scanner_name_normalized else ('Dual Energy/Dual Source/Spectral CT' if 'somatom flash' in @scanner_name_normalized else 'Single Energy')"
+
+  dose_min_per_kg:
+    calculation: "0.400 if @scanner_type == 'Photon Counting CT' else (0.480 if @scanner_type == 'Dual Energy/Dual Source/Spectral CT' else 0.525)"
+  dose_max_per_kg:
+    calculation: "0.450 if @scanner_type == 'Photon Counting CT' else (0.525 if @scanner_type == 'Dual Energy/Dual Source/Spectral CT' else 0.625)"
+  dose_min_g:
+    calculation: "@dose_min_per_kg * @patient_weight_kg if @patient_weight_kg != None else None"
+  dose_max_g:
+    calculation: "@dose_max_per_kg * @patient_weight_kg if @patient_weight_kg != None else None"
+
+  idr_min_g_s:
+    source: roi_hu_timing_table
+    field: IDR
+    index: 0
+  idr_max_g_s:
+    source: roi_hu_timing_table
+    field: IDR
+    index: 1
+  idr_min_tolerated_g_s:
+    source: roi_hu_timing_table
+    field: IDR
+    index: 2
+  idr_max_tolerated_g_s:
+    source: roi_hu_timing_table
+    field: IDR
+    index: 3
+
+  contrast_load_min_ml:
+    calculation: "@dose_min_g * 1000 / @contrast_concentration_mg_ml if @dose_min_g != None and @contrast_concentration_mg_ml not in (None, 0) else None"
+  contrast_load_max_ml:
+    calculation: "@dose_max_g * 1000 / @contrast_concentration_mg_ml if @dose_max_g != None and @contrast_concentration_mg_ml not in (None, 0) else None"
+  flow_min_ml_s:
+    calculation: "@idr_min_tolerated_g_s * 1000 / @contrast_concentration_mg_ml if @idr_min_tolerated_g_s != None and @contrast_concentration_mg_ml not in (None, 0) else None"
+  flow_max_ml_s:
+    calculation: "@idr_max_tolerated_g_s * 1000 / @contrast_concentration_mg_ml if @idr_max_tolerated_g_s != None and @contrast_concentration_mg_ml not in (None, 0) else None"
+  has_pressure:
+    calculation: "@pressure_psi != None"
+  has_contrast_load_inputs:
+    calculation: "@contrast_volume_ml != None and @contrast_load_min_ml != None and @contrast_load_max_ml != None"
+  has_saline_volume:
+    calculation: "@saline_volume_ml != None"
+  has_idr:
+    calculation: "@injection_duration_s not in (None, 0) and @contrast_dose_g != None"
+  has_flow_inputs:
+    calculation: "@flow_rate_ml_s != None and @flow_min_ml_s != None and @flow_max_ml_s != None"
+  protocol_mismatch_details:
+    calculation: "@_protocol_mismatch_details"
+  protocol_matches:
+    calculation: "@protocol_mismatch_details == 'No mismatches'"
+  has_protocol_inputs:
+    calculation: "all(value != None for value in [@{Programmed Total Contrast Volume (mL)}, @{Programmed Total Contrast Dose (gI)}, @{Programmed Total Saline Volume (mL)}, @{Actual Total Contrast Volume Injected (mL)}, @{Actual Total Contrast Dose (gI)}, @{Actual Total Saline Volume Injected (mL)}])"
+  protocol_missing_details:
+    calculation: "'Contrast media load: Patient Weight is missing, so range [K-L] cannot be calculated.' if @patient_weight_kg == None else ('Contrast media load: Contrast Concentration is missing or zero, so range [K-L] cannot be calculated.' if @contrast_concentration_mg_ml in (None, 0) else ('Contrast media load: Actual Total Contrast Volume Injected (mL) is missing.' if @contrast_volume_ml == None else ('IDR: Actual Total Duration (s), Actual Total Contrast Dose (gI), or the configured procedure IDR range is missing.' if not @has_idr or @idr_min_tolerated_g_s == None or @idr_max_tolerated_g_s == None else ('Flow rate: no contrast-phase samples were found in Actual Flow-Rate Data Points.' if not @has_flow_inputs else ('Protocol execution: one or more programmed or actual dose/volume values are missing.' if not @has_protocol_inputs else 'No protocol inputs are missing.')))))"
+
+independent_checks:
+  - name: pressure
+    question: "Is pressure below 300 psi?"
+    available_condition: "@has_pressure"
+    condition: "@pressure_psi < 300"
+    low_outcome: outcome_pressure_error
+    high_outcome: outcome_pressure_high
+    high_condition: "@pressure_psi >= 300"
+    missing_outcome: outcome_missing_data
+  - name: contrast_load
+    question: "Is contrast media load within [K-L]?"
+    available_condition: "@has_contrast_load_inputs"
+    condition: "@contrast_volume_ml >= @contrast_load_min_ml and @contrast_volume_ml <= @contrast_load_max_ml"
+    low_outcome: outcome_contrast_load_low
+    high_outcome: outcome_contrast_load_high
+    high_condition: "@contrast_volume_ml > @contrast_load_max_ml"
+    missing_outcome: outcome_missing_data
+  - name: saline_volume
+    question: "Is saline volume within [M-N]?"
+    available_condition: "@has_saline_volume"
+    condition: "@saline_volume_ml >= 30 and @saline_volume_ml <= 50"
+    low_outcome: outcome_saline_low
+    high_outcome: outcome_saline_high
+    high_condition: "@saline_volume_ml > 50"
+    missing_outcome: outcome_missing_data
+  - name: idr
+    question: "Is IDR within [O-P]?"
+    available_condition: "@has_idr and @idr_min_tolerated_g_s != None and @idr_max_tolerated_g_s != None"
+    condition: "@idr_result_g_s >= @idr_min_tolerated_g_s and @idr_result_g_s <= @idr_max_tolerated_g_s"
+    low_outcome: outcome_idr_low
+    high_outcome: outcome_idr_high
+    high_condition: "@idr_result_g_s > @idr_max_tolerated_g_s"
+    missing_outcome: outcome_missing_data
+  - name: flow_rate
+    question: "Is flow rate within [Q-R]?"
+    available_condition: "@has_flow_inputs"
+    condition: "@flow_rate_ml_s >= @flow_min_ml_s and @flow_rate_ml_s <= @flow_max_ml_s"
+    low_outcome: outcome_flow_low
+    high_outcome: outcome_flow_high
+    high_condition: "@flow_rate_ml_s > @flow_max_ml_s"
+    missing_outcome: outcome_missing_data
+  - name: protocol_execution
+    question: "Was the programmed protocol correctly executed?"
+    available_condition: "@has_protocol_inputs"
+    condition: "@protocol_matches"
+    outcome: outcome_execution_error
+    missing_outcome: outcome_missing_data
+
+decisions:
+  root:
+    question: "Is pressure below 300 psi?"
+    condition: "@has_pressure"
+    if_true: check_pressure
+    if_false: outcome_missing_data
+  check_pressure:
+    question: "Is pressure below 300 psi?"
+    condition: "@pressure_psi < 300"
+    if_true: check_contrast_load
+    if_false: outcome_pressure_error
+  check_contrast_load:
+    question: "Is contrast media load within [K-L]?"
+    condition: "@has_contrast_load_inputs"
+    if_true: evaluate_contrast_load
+    if_false: outcome_missing_data
+  evaluate_contrast_load:
+    question: "Is contrast media load within [K-L]?"
+    condition: "@contrast_volume_ml >= @contrast_load_min_ml and @contrast_volume_ml <= @contrast_load_max_ml"
+    if_true: check_saline
+    if_false: outcome_contrast_load_error
+  check_saline:
+    question: "Is saline volume within [M-N] = [30, 50] ml?"
+    condition: "@has_saline_volume"
+    if_true: evaluate_saline
+    if_false: outcome_missing_data
+  evaluate_saline:
+    question: "Is saline volume within [M-N]?"
+    condition: "@saline_volume_ml >= 30 and @saline_volume_ml <= 50"
+    if_true: check_idr
+    if_false: outcome_saline_error
+  check_idr:
+    question: "Is IDR within [O-P]?"
+    condition: "@has_idr"
+    if_true: evaluate_idr
+    if_false: outcome_missing_data
+  evaluate_idr:
+    question: "Is IDR within the tolerated range [O-P]?"
+    condition: "@contrast_dose_g / @injection_duration_s >= @idr_min_tolerated_g_s and @contrast_dose_g / @injection_duration_s <= @idr_max_tolerated_g_s"
+    if_true: check_flow
+    if_false: outcome_idr_error
+  check_flow:
+    question: "Is flow rate within [Q-R]?"
+    condition: "@has_flow_inputs"
+    if_true: evaluate_flow
+    if_false: outcome_missing_data
+  evaluate_flow:
+    question: "Is flow rate within the tolerated range [Q-R]?"
+    condition: "@flow_rate_ml_s >= @flow_min_ml_s and @flow_rate_ml_s <= @flow_max_ml_s"
+    if_true: check_execution
+    if_false: outcome_flow_error
+  check_execution:
+    question: "Was the programmed protocol correctly executed?"
+    condition: "@protocol_matches"
+    if_true: outcome_protocol_ok
+    if_false: outcome_execution_error
+
+outcomes:
+  outcome_protocol_ok:
+    label: "protocol_ok"
+    card:
+      title: "Protocol parameters within range"
+      explanation: "Pressure: @pressure_psi psi. Contrast load: @contrast_volume_ml ml [@contrast_load_min_ml, @contrast_load_max_ml] ml. Saline: @saline_volume_ml ml. IDR: @contrast_dose_g / @injection_duration_s gI/s [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s]. Flow: @flow_rate_ml_s ml/s [@flow_min_ml_s, @flow_max_ml_s] ml/s. Programmed protocol values match actual values."
+      impact: "No protocol-parameter deviation was identified."
+      recommendations: []
+  outcome_pressure_high:
+    label: "pressure_high"
+    card:
+      title: "Pressure high"
+      explanation: "Measured maximum pressure: @pressure_psi psi. The maximum accepted pressure is below 300 psi."
+      impact: "High injection pressure may indicate an injection or access problem."
+      recommendations: ["Review the injection access, pressure limit, and injector logs."]
+  outcome_contrast_load_low:
+    label: "contrast_volume_low"
+    card:
+      title: "Contrast volume low"
+      explanation: "Measured contrast volume: @contrast_volume_ml ml. Expected range [K-L]: [@contrast_load_min_ml, @contrast_load_max_ml] ml."
+      impact: "The administered contrast volume is below the scanner- and weight-based range."
+      recommendations: ["Review contrast dose, concentration, patient weight, and programmed volume."]
+  outcome_contrast_load_high:
+    label: "contrast_volume_high"
+    card:
+      title: "Contrast volume high"
+      explanation: "Measured contrast volume: @contrast_volume_ml ml. Expected range [K-L]: [@contrast_load_min_ml, @contrast_load_max_ml] ml."
+      impact: "The administered contrast volume is above the scanner- and weight-based range."
+      recommendations: ["Review contrast dose, concentration, patient weight, and programmed volume."]
+  outcome_saline_low:
+    label: "saline_volume_low"
+    card:
+      title: "Saline volume low"
+      explanation: "Measured saline volume: @saline_volume_ml ml. Expected range: [30, 50] ml."
+      impact: "Saline volume is below the protocol range."
+      recommendations: ["Review the saline flush settings and executed injection program."]
+  outcome_saline_high:
+    label: "saline_volume_high"
+    card:
+      title: "Saline volume high"
+      explanation: "Measured saline volume: @saline_volume_ml ml. Expected range: [30, 50] ml."
+      impact: "Saline volume is above the protocol range."
+      recommendations: ["Review the saline flush settings and executed injection program."]
+  outcome_idr_low:
+    label: "idr_low"
+    card:
+      title: "IDR low"
+      explanation: "Measured IDR: @idr_result_g_s gI/s, calculated as @contrast_dose_g gI / @injection_duration_s s. Expected range: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s."
+      impact: "The iodine delivery rate is below the protocol range."
+      recommendations: ["Review contrast dose and injection duration for the selected procedure."]
+  outcome_idr_high:
+    label: "idr_high"
+    card:
+      title: "IDR high"
+      explanation: "Measured IDR: @idr_result_g_s gI/s, calculated as @contrast_dose_g gI / @injection_duration_s s. Expected range: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s."
+      impact: "The iodine delivery rate is above the protocol range."
+      recommendations: ["Review contrast dose and injection duration for the selected procedure."]
+  outcome_flow_low:
+    label: "flow_rate_low"
+    card:
+      title: "Flow rate low"
+      explanation: "Measured average contrast flow rate: @flow_rate_ml_s ml/s. Expected range [Q-R]: [@flow_min_ml_s, @flow_max_ml_s] ml/s."
+      impact: "The contrast flow rate is below the protocol range."
+      recommendations: ["Review the programmed flow rate and contrast concentration."]
+  outcome_flow_high:
+    label: "flow_rate_high"
+    card:
+      title: "Flow rate high"
+      explanation: "Measured average contrast flow rate: @flow_rate_ml_s ml/s. Expected range [Q-R]: [@flow_min_ml_s, @flow_max_ml_s] ml/s."
+      impact: "The contrast flow rate is above the protocol range."
+      recommendations: ["Review the programmed flow rate and contrast concentration."]
+  outcome_pressure_error:
+    label: "pressure_error"
+    card:
+      title: "Error: pressure was too high"
+      explanation: "Measured maximum pressure: @pressure_psi psi. The maximum accepted pressure is below 300 psi."
+      impact: "High injection pressure may indicate an injection or access problem."
+      recommendations: ["Review the injection access, pressure limit, and injector logs."]
+  outcome_contrast_load_error:
+    label: "contrast_load_error"
+    card:
+      title: "Error: contrast media load was too high or low"
+      explanation: "Measured contrast volume: @contrast_volume_ml ml. Expected range [K-L]: [@contrast_load_min_ml, @contrast_load_max_ml] ml."
+      impact: "The administered contrast volume does not match the scanner- and weight-based dose range."
+      recommendations: ["Review contrast dose, concentration, patient weight, and programmed volume."]
+  outcome_saline_error:
+    label: "saline_volume_error"
+    card:
+      title: "Error: saline volume was too high or low"
+      explanation: "Measured saline volume: @saline_volume_ml ml. Expected range: [30, 50] ml."
+      impact: "Saline volume deviated from the protocol range."
+      recommendations: ["Review the saline flush settings and executed injection program."]
+  outcome_idr_error:
+    label: "idr_error"
+    card:
+      title: "Error: IDR was too high or low"
+      explanation: "Measured IDR: @contrast_dose_g / @injection_duration_s gI/s. Expected range for the procedure: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s."
+      impact: "The iodine delivery rate may reduce enhancement or exceed the protocol target."
+      recommendations: ["Review contrast dose and injection duration for the selected procedure."]
+  outcome_flow_error:
+    label: "flow_rate_error"
+    card:
+      title: "Error: flow rate was too high or low"
+      explanation: "Measured average contrast flow rate: @flow_rate_ml_s ml/s. Expected range [Q-R]: [@flow_min_ml_s, @flow_max_ml_s] ml/s, calculated as IDR [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s * 1000 / @contrast_concentration_mg_ml mgI/ml."
+      impact: "Flow rate deviated from the IDR- and concentration-based protocol range."
+      recommendations: ["Review the programmed flow rate and contrast concentration."]
+  outcome_execution_error:
+    label: "protocol_execution_error"
+    card:
+      title: "Executed protocol differs from programmed"
+      explanation: "The following programmed and actual values differ by more than the accepted +/-2 tolerance: @protocol_mismatch_details."
+      impact: "The executed injection did not reproduce the programmed protocol."
+      recommendations: ["Compare programmed and actual injector records."]
+  outcome_missing_data:
+    label: "protocol_data_missing"
+    card:
+      title: "Protocol analysis not evaluable"
+      explanation: "@protocol_missing_details"
+      impact: "No reliable protocol deviation can be assigned."
+      recommendations: ["Review the injection history and injector metadata for missing pressure, volume, dose, duration, concentration, or program values."]

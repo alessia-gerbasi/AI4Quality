@@ -1,0 +1,133 @@
+name: "Dose Analysis"
+description: "Evaluate administered iodine dose against the scanner-specific patient-weight range"
+
+# Scanner classification follows the protocol table shown in the dose flowchart:
+# NAEOTOM systems are photon-counting CT, Somatom Flash systems are dual-energy,
+# and other scanner names use the single-energy range.
+variables:
+  extravasation_value:
+    calculation: "@{Extravasation}"
+  has_extravasation:
+    calculation: "str(@extravasation_value).strip().lower() not in ['', 'none', 'nan']"
+
+  patient_weight_kg:
+    calculation: "@{Patient Weight}"
+  has_patient_weight:
+    calculation: "str(@patient_weight_kg).strip().lower() not in ['', 'none', 'nan'] and @patient_weight_kg > 0"
+
+  administered_dose_g:
+    calculation: "@{Actual Total Contrast Dose (gI)}"
+  has_administered_dose:
+    calculation: "str(@administered_dose_g).strip().lower() not in ['', 'none', 'nan']"
+  scanner_name:
+    calculation: "@Scanner"
+  scanner_name_normalized:
+    calculation: "str(@scanner_name).strip().lower()"
+  scanner_type:
+    calculation: "'Photon Counting CT' if 'naeotom' in @scanner_name_normalized else ('Dual Energy/Dual Source/Spectral CT' if 'somatom flash' in @scanner_name_normalized else 'Single Energy')"
+
+  dose_min_per_kg:
+    calculation: "0.400 if @scanner_type == 'Photon Counting CT' else (0.480 if @scanner_type == 'Dual Energy/Dual Source/Spectral CT' else 0.525)"
+  dose_max_per_kg:
+    calculation: "0.450 if @scanner_type == 'Photon Counting CT' else (0.525 if @scanner_type == 'Dual Energy/Dual Source/Spectral CT' else 0.625)"
+  dose_g_min:
+    calculation: "@dose_min_per_kg * @patient_weight_kg if @has_patient_weight else None"
+  dose_g_max:
+    calculation: "@dose_max_per_kg * @patient_weight_kg if @has_patient_weight else None"
+  dose_in_range:
+    calculation: "@has_administered_dose and @has_patient_weight and @administered_dose_g >= @dose_g_min and @administered_dose_g <= @dose_g_max"
+  dose_above_max:
+    calculation: "@has_administered_dose and @has_patient_weight and @administered_dose_g > @dose_g_max"
+  timing_issue:
+    calculation: "str(@rca_label).strip().lower() in ['early', 'late']"
+
+decisions:
+  root:
+    question: "Was there an extravasation?"
+    condition: "@has_extravasation"
+    if_true: outcome_extravasation
+    if_false: check_weight
+
+  check_weight:
+    question: "Is patient weight known?"
+    condition: "@has_patient_weight"
+    if_true: check_dose_inputs
+    if_false: check_timing
+
+  check_dose_inputs:
+    question: "Is the administered dose known?"
+    condition: "@has_administered_dose"
+    if_true: check_dose_range
+    if_false: outcome_other
+
+  check_timing:
+    question: "Was there a timing issue?"
+    condition: "@timing_issue"
+    if_true: outcome_timing_error
+    if_false: outcome_other
+
+  check_dose_range:
+    question: "Is the administered dose within the theoretical range [G-H]?"
+    condition: "@dose_in_range"
+    if_true: outcome_dose_correct
+    if_false: check_dose_high
+
+  check_dose_high:
+    question: "Is the administered dose greater than H?"
+    condition: "@dose_above_max"
+    if_true: outcome_dose_excessive
+    if_false: outcome_dose_insufficient
+
+outcomes:
+  outcome_extravasation:
+    label: "extravasation_error"
+    card:
+      title: "Extravasation error"
+      explanation: "Extravasation was reported: @{extravasation_value}."
+      impact: "The administered contrast may not have reached the circulation as intended."
+      recommendations:
+        - "Review the injection event and local extravasation management documentation."
+
+  outcome_dose_correct:
+    label: "dose_ok"
+    card:
+      title: "Dose within theoretical range"
+      explanation: "Administered dose: @administered_dose_g gI. Expected range for @scanner_type: [@dose_g_min, @dose_g_max] gI for a patient weight of @patient_weight_kg kg."
+      impact: "The administered contrast dose is appropriate for the patient weight and scanner type."
+      recommendations: []
+
+  outcome_dose_excessive:
+    label: "dose_excessive"
+    card:
+      title: "The contrast media dose was excessive"
+      explanation: "Administered dose: @administered_dose_g gI, above H = @dose_g_max gI for @scanner_type and patient weight @patient_weight_kg kg."
+      impact: "The patient received more contrast than the scanner-specific theoretical range recommends."
+      recommendations:
+        - "Review the protocol dose settings and patient-weight calculation."
+
+  outcome_dose_insufficient:
+    label: "dose_insufficient"
+    card:
+      title: "The contrast media dose was insufficient"
+      explanation: "Administered dose: @administered_dose_g gI, below G = @dose_g_min gI for @scanner_type and patient weight @patient_weight_kg kg."
+      impact: "Insufficient iodine dose may reduce contrast enhancement and image quality."
+      recommendations:
+        - "Review the protocol dose settings and patient-weight calculation."
+
+  outcome_timing_error:
+    label: "timing_error"
+    card:
+      title: "See timing error"
+      explanation: "The timing analysis reported a @rca_label acquisition issue."
+      impact: "Timing, rather than dose, may be contributing to the quality failure."
+      recommendations:
+        - "Review the timing analysis and injection-to-acquisition delay."
+
+  outcome_other:
+    label: "other"
+    card:
+      title: "See Other"
+      explanation: "Patient weight was unavailable and no early or late timing issue was supplied."
+      impact: "The dose range cannot be calculated reliably from the available data."
+      recommendations:
+        - "Review the patient weight and other possible causes of the quality failure."

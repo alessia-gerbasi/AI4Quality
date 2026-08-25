@@ -22,6 +22,7 @@ timing_adjustments:
 procedures:
   TACPEC:
     description: "TAC ADDOME E PELVI CON CONTR."
+    IDR: [0.8, 1.0, 0.6, 1.2]
     phases:
       arteriosa:
         rois: [aorta]
@@ -35,6 +36,7 @@ procedures:
 
   TACCOR:
     description: "Tac Coronarica e Angio Tac Cor."
+    IDR: [2.0, 2.2, 1.8, 2.4]
     phases:
       arteriosa:
         rois: [coronary_arteries]
@@ -45,6 +47,7 @@ procedures:
 
   TACPEM:
     description: "TAC Addome e Pelvi"
+    IDR: [0.8, 1.0, 0.6, 1.2]
     phases:
       arteriosa:
         rois: [aorta]
@@ -58,6 +61,7 @@ procedures:
 
   TACTCG: 
     description: "TAC TOTAL BODY CON MEZZO DI CONTRASTO"
+    IDR: [1.1, 1.4, 0.9, 1.2] # ? check
     phases:
       arteriosa:
         rois: [aorta]
@@ -71,6 +75,7 @@ procedures:
 
   TACAAO:
     description: "Angio TAC aorta addominale"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [aorta]
@@ -81,6 +86,7 @@ procedures:
 
   TACAAT:
     description: "Angio TAC aorta toracica"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [aorta]
@@ -91,6 +97,7 @@ procedures:
 
   TACCRG:
     description: "TC Coronarografia"
+    IDR: [2.0, 2.2, 1.8, 2.4]
     phases:
       arteriosa:
         rois: [coronary_arteries]
@@ -101,6 +108,7 @@ procedures:
 
   TACADC:
     description: "TAC Addome con contrasto"
+    IDR: [1.1, 1.4, 0.9, 1.2]
     phases:
       arteriosa:
         rois: [aorta]
@@ -114,6 +122,7 @@ procedures:
 
   TACBAC:
     description: "TAC del Bacino"
+    IDR: [0.8, 1.0, 0.6, 1.2]
     phases:
       arteriosa:
         rois: []
@@ -124,6 +133,7 @@ procedures:
 
   TACADI:
     description: "Angio TC Aorta addominale e arti inferiori"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [aorta]
@@ -134,6 +144,7 @@ procedures:
 
   TACATD:
     description: "Angio TC Aorta toraco addominale"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [aorta]
@@ -144,6 +155,7 @@ procedures:
 
   TACAGC:
     description: "Angio TAC del collo"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [common_carotid_artery_right, common_carotid_artery_left]
@@ -154,6 +166,7 @@ procedures:
 
   TACCRA:
     description: "TAC Encefalo+Angiotac Carotidi"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [common_carotid_artery_right, common_carotid_artery_left]
@@ -164,6 +177,7 @@ procedures:
 
   TACAGE:
     description: "Angio TAC cerebrale"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [common_carotid_artery_right, common_carotid_artery_left]
@@ -174,6 +188,7 @@ procedures:
 
   TACANC:
     description: "TAC dell'Anca"
+    IDR: [0.8, 1.0, 0.6, 1.2]
     phases:
       arteriosa:
         rois: []
@@ -183,6 +198,7 @@ procedures:
 
   TACAGI:
     description: "Angio TAC arto inferiore"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [aorta]
@@ -193,6 +209,7 @@ procedures:
 
   TACADN:
     description: "TAC Addome"
+    IDR: [1.1, 1.4, 0.9, 1.2]
     phases:
       arteriosa:
         rois: [aorta]
@@ -206,6 +223,7 @@ procedures:
 
   TACTFA:
     description: "TAC TOTAL BODY"
+    IDR: [1.1, 1.4, 0.9, 1.2] #? check
     phases:
       arteriosa:
         rois: [aorta]
@@ -219,6 +237,7 @@ procedures:
 
   TACACP:
     description: "Angio Tc circolo polmonare"
+    IDR: [1.4, 1.6, 1.2, 1.8]
     phases:
       arteriosa:
         rois: [pulmonary_artery]
@@ -229,6 +248,7 @@ procedures:
 
   TACPEV:
     description: "TAC Pelvi con contrasto"
+    IDR: [0.8, 1.0, 0.6, 1.2]
     phases:
       arteriosa:
         rois: []
@@ -239,6 +259,7 @@ procedures:
 
   TACPEL:
     description: "TAC Pelvi"
+    IDR: [0.8, 1.0, 0.6, 1.2]
     phases:
       arteriosa:
         rois: []
@@ -249,6 +270,7 @@ procedures:
 
   TACREC:
     description: "TAC dei reni con contrasto"
+    IDR: [0.8, 1.0, 0.6, 1.2] #? check
     phases:
       arteriosa:
         rois: [kidney_left, kidney_right]
@@ -261,6 +283,7 @@ procedures:
 
   TACCUO:
     description: "TAC CUORE"
+    IDR: [2.0, 2.2, 1.8, 2.4]
     phases:
       arteriosa:
         rois: [aorta]
@@ -271,6 +294,7 @@ procedures:
 
   TACAAR:
     description: "Angio TC arterie renali/epat."
+    IDR: [1.4, 1.6, 1.2, 1.8] #? check
     phases:
       arteriosa:
         rois: [aorta]
@@ -281,6 +305,7 @@ procedures:
 
   TACAGA:
     description: "Angiotac Vasi Addominali"
+    IDR: [1.4, 1.6, 1.2, 1.8] #? check
     phases:
       arteriosa:
         rois: [aorta]
@@ -291,6 +316,7 @@ procedures:
 
   TACATC:
     description: "TAC addome + torace"
+    IDR: [0.8, 1.0, 0.6, 1.2] #? check
     phases:
       arteriosa:
         rois: [aorta]
@@ -304,6 +330,7 @@ procedures:
 
   TACREN:
     description: "TAC dei reni"
+    IDR: [0.8, 1.0, 0.6, 1.2] #? check
     phases:
       arteriosa:
         rois: [kidney_left, kidney_right]
@@ -316,6 +343,7 @@ procedures:
 
   TACURO:
     description: "URO-TC S/C contrasto"
+    IDR: [0.8, 1.0, 0.6, 1.2] #? check
     phases:
       arteriosa:
         rois: [kidney_left, kidney_right]
@@ -328,6 +356,7 @@ procedures:
 
   TACTON: # per ora consideriamo solo la fase arteriosa, in quanto per la fase venosa serve ROI adatta
     description: "TAC Torace"
+    IDR: [0.8, 1.0, 0.6, 1.2] #? check
     phases:
       arteriosa:
         rois: [aorta]

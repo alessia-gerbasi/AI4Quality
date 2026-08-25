@@ -23,9 +23,12 @@ SCHEMA_DIR    = BASE / 'schemas'
 THRESHOLD_CFG = BASE.parent / 'config' / 'common' / 'ct_protocols.yaml'
 QC_RESULTS    = BASE.parent / '_02_QualityCheck' / 'OUTPUTS' / 'roi_hu_qc_results.csv'
 SERIES_TABLE  = BASE.parent / '_00_Preprocessing' / 'OUTPUTS' / 'retained_series_unified_filtered.csv'
+QC_TABLE      = BASE.parent / '_02_QualityCheck' / 'OUTPUTS' / 'roi_hu_qc_results.csv'
 LINK_TABLE    = BASE.parent.parent / 'DATA' / 'CDI_NEXO_072026' / '0_files' / 'link_anonymization.xlsx'
 INJECTION_XLS = BASE.parent.parent / 'DATA' / 'CDI_NEXO_072026' / '0_files' / 'Injection History Anonymized.xlsx'
 DEFAULT_OUT   = BASE / 'rca_results.csv'
+RESULTS_DIR   = BASE / 'results'
+AGGREGATED_OUT = BASE / 'rca_results_all.csv'
 
 CRITICAL_STATUSES = {'critical_low', 'critical_high'}
 
@@ -75,13 +78,27 @@ def _parse_dicom_time_to_seconds(value: object) -> float | None:
 
 def build_patient_context(patient_data: dict, series_df: pd.DataFrame,
                           ct_folder: str, series_folder: str,
-                          phase_name: str, procedure_code: str) -> dict:
+                          phase_name: str, procedure_code: str,
+                          qc_df: pd.DataFrame = None,
+                          affected_rois: str = '') -> dict:
     """Attach DICOM timing metadata for the current series and arterial reference."""
     context = dict(patient_data or {})
     context['_ct_folder'] = ct_folder
     context['_series_folder'] = series_folder
     context['_phase'] = phase_name
     context['_procedure_code'] = procedure_code
+    context['_has_noncontrast_series'] = bool(
+        not series_df[(series_df['ct_folder'].astype(str) == str(ct_folder))
+                      & (series_df['phase_name'].fillna('').astype(str).str.lower() == 'basale')].empty
+    )
+    context['_liver_problem_present'] = 'liver' in str(affected_rois).lower().split(',')
+    if qc_df is not None:
+        liver_rows = qc_df[(qc_df['ct_folder'].astype(str) == str(ct_folder))
+                           & (qc_df['series_folder'].astype(str) == str(series_folder))
+                           & (qc_df['roi_name'].astype(str).str.lower() == 'liver')]
+        if not liver_rows.empty:
+            context['_liver_hu_precontrast'] = liver_rows.iloc[0].get('mean_hu_precontrast')
+            context['_liver_hu_current'] = liver_rows.iloc[0].get('mean_hu')
 
     ct_series = series_df[series_df['ct_folder'].astype(str) == str(ct_folder)].copy()
     current = ct_series[ct_series['series_folder'].astype(str) == str(series_folder)]
@@ -147,6 +164,18 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
 
     print(f"Loading data...")
     merged, inj, series_df = load_data()
+    qc_df = pd.read_csv(QC_TABLE) if QC_TABLE.exists() else None
+
+    timing_labels = {}
+    timing_source = AGGREGATED_OUT if AGGREGATED_OUT.exists() else DEFAULT_OUT
+    if timing_source.exists():
+        timing_results = pd.read_csv(timing_source)
+        timing_results = timing_results[timing_results.get('rca_schema', '').astype(str).str.startswith('timing_schema')]
+        timing_labels = {
+            (str(item.ct_id), str(item.series_folder)): item.rca_label
+            for item in timing_results.itertuples()
+            if pd.notna(item.rca_label)
+        }
 
     # Filter to critical series only (unique per series, not per ROI)
     critical = merged[merged['status'].isin(statuses)].copy()
@@ -180,11 +209,28 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
             row.get('series_folder', ''),
             row.get('phase_name', ''),
             procedure_code,
+            qc_df,
+            row.get('affected_rois', ''),
         )
+        timing_label = timing_labels.get((str(row.get('ct_id')), str(row.get('series_folder'))))
+        if timing_label:
+            patient_data['rca_label'] = timing_label
 
         result = evaluator.evaluate(patient_data)
 
         card = result.get('card', {})
+        rca_variables = result.get('calculated_variables', {})
+        rca_notes = rca_variables.get('note_text', '')
+        if not rca_notes:
+            rca_notes = ' | '.join(
+                f'{label}: {patient_data.get(field)}'
+                for label, field in (
+                    ('Injection Notes', 'Injection Notes'),
+                    ('Injection Reports(Custom)', 'Injection Reports(Custom)'),
+                )
+                if patient_data.get(field) is not None
+                and str(patient_data.get(field)).strip().lower() not in {'', 'nan', 'none', 'null'}
+            )
         rows.append({
             # QC identifiers
             'ct_id':           row.get('ct_id'),
@@ -201,13 +247,15 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
             # RCA result
             'rca_schema':         schema_name,
             'rca_label':          result.get('diagnosis_label', 'unknown'),
+            'rca_diagnoses':      ' | '.join(result.get('diagnoses', [result.get('diagnosis_label', 'unknown')])),
             'rca_title':          card.get('title', ''),
             'rca_explanation':    card.get('explanation', ''),
+            'rca_notes':          rca_notes,
             'rca_impact':         card.get('impact', ''),
             'rca_recommendations': ' | '.join(card.get('recommendations', [])),
             'rca_success':        result.get('success', False),
             # Calculated variables (for debugging)
-            'rca_variables':      str(result.get('calculated_variables', {})),
+            'rca_variables':      str(rca_variables),
             # Decision path summary
             'rca_decision_path':  ' → '.join(
                 f"{s['node']}({'Y' if s['result'] else 'N'})"
@@ -216,8 +264,25 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
         })
 
     out_df = pd.DataFrame(rows)
-    out_df.to_csv(output_path, index=False)
-    print(f"Saved {len(out_df)} results to {output_path}")
+    RESULTS_DIR.mkdir(exist_ok=True)
+    schema_output = RESULTS_DIR / f'rca_results_{schema_name}.csv'
+    out_df.to_csv(schema_output, index=False)
+
+    frames = []
+    for existing_path in sorted(RESULTS_DIR.glob('rca_results_*.csv')):
+        try:
+            frames.append(pd.read_csv(existing_path))
+        except (OSError, pd.errors.EmptyDataError):
+            continue
+    aggregate = pd.concat(frames, ignore_index=True) if frames else out_df
+    aggregate = aggregate.drop_duplicates(
+        subset=['ct_id', 'series_folder', 'rca_schema'], keep='last'
+    )
+    aggregate.to_csv(AGGREGATED_OUT, index=False)
+    # Preserve the legacy output as a snapshot of the selected schema.
+    out_df.to_csv(DEFAULT_OUT, index=False)
+    print(f"Saved {len(out_df)} results to {schema_output}")
+    print(f"Updated aggregate with {len(aggregate)} results at {AGGREGATED_OUT}")
 
     # Print quick summary
     print("\nDiagnosis distribution:")
