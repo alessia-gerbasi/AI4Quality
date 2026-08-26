@@ -11,8 +11,13 @@ Usage:
 """
 import argparse
 import ast
+import sys
 import pandas as pd
 from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from rule_engine import RuleEvaluator
 from excel_loader import ExcelLoader
@@ -24,6 +29,7 @@ THRESHOLD_CFG = BASE.parent / 'config' / 'common' / 'ct_protocols.yaml'
 QC_RESULTS    = BASE.parent / '_02_QualityCheck' / 'OUTPUTS' / 'roi_hu_qc_results.csv'
 SERIES_TABLE  = BASE.parent / '_00_Preprocessing' / 'OUTPUTS' / 'retained_series_unified_filtered.csv'
 QC_TABLE      = BASE.parent / '_02_QualityCheck' / 'OUTPUTS' / 'roi_hu_qc_results.csv'
+PATIENT_QC_SUMMARY = BASE.parent / '_02_QualityCheck' / 'OUTPUTS' / 'patient_hu_qc_summary.csv'
 LINK_TABLE    = BASE.parent.parent / 'DATA' / 'CDI_NEXO_072026' / '0_files' / 'link_anonymization.xlsx'
 INJECTION_XLS = BASE.parent.parent / 'DATA' / 'CDI_NEXO_072026' / '0_files' / 'Injection History Anonymized.xlsx'
 DEFAULT_OUT   = BASE / 'rca_results.csv'
@@ -165,6 +171,8 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
     print(f"Loading data...")
     merged, inj, series_df = load_data()
     qc_df = pd.read_csv(QC_TABLE) if QC_TABLE.exists() else None
+    patient_warning_df = pd.read_csv(PATIENT_QC_SUMMARY) if PATIENT_QC_SUMMARY.exists() else pd.DataFrame()
+    patient_warning_df = patient_warning_df.set_index(patient_warning_df.ct_id.astype(str)) if not patient_warning_df.empty else patient_warning_df
 
     timing_labels = {}
     timing_source = AGGREGATED_OUT if AGGREGATED_OUT.exists() else DEFAULT_OUT
@@ -212,6 +220,11 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
             qc_df,
             row.get('affected_rois', ''),
         )
+        if not patient_warning_df.empty and str(row.get('ct_id')) in patient_warning_df.index:
+            warning_row = patient_warning_df.loc[str(row.get('ct_id'))]
+            patient_data['_patient_warning_priority'] = warning_row.get('warning_priority', 'none')
+            patient_data['_patient_warning'] = warning_row.get('warning', '')
+            patient_data['_patient_warning_evidence'] = warning_row.get('warning_evidence', '')
         timing_label = timing_labels.get((str(row.get('ct_id')), str(row.get('series_folder'))))
         if timing_label:
             patient_data['rca_label'] = timing_label
@@ -244,6 +257,9 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
             'affected_rois':   row.get('affected_rois'),
             'n_critical_rois': row.get('n_critical_rois'),
             'series_warnings': row.get('series_warnings'),
+            'patient_warning_priority': patient_data.get('_patient_warning_priority', 'none'),
+            'patient_warning': patient_data.get('_patient_warning', ''),
+            'patient_warning_evidence': patient_data.get('_patient_warning_evidence', ''),
             # RCA result
             'rca_schema':         schema_name,
             'rca_label':          result.get('diagnosis_label', 'unknown'),

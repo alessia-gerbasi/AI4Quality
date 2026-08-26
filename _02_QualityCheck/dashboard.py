@@ -407,6 +407,22 @@ def main() -> None:
     selected_phases = st.sidebar.multiselect("Phase", phases, default=phases)
     selected_statuses = st.sidebar.multiselect("Status", statuses, default=statuses)
     selected_metrics = st.sidebar.multiselect("Metric", metrics, default=metrics)
+    warning_priority_labels = {
+        "none": "No warning",
+        "low": "Low priority warning",
+        "medium": "Medium priority warning",
+        "high": "High priority warning",
+    }
+    segmentation_warning_label = "Segmentation warning"
+    selected_warning_labels = st.sidebar.multiselect(
+        "Patient warning",
+        [*warning_priority_labels.values(), segmentation_warning_label],
+        default=[*warning_priority_labels.values(), segmentation_warning_label],
+    )
+    selected_warning_priorities = [
+        priority for priority, label in warning_priority_labels.items()
+        if label in selected_warning_labels
+    ]
     only_warning_series = st.sidebar.checkbox("Only series with warnings", value=False)
 
     filtered_detail = detail_df[
@@ -416,6 +432,14 @@ def main() -> None:
         & detail_df["status"].isin(selected_statuses)
         & detail_df["metric_name"].isin(selected_metrics)
     ].copy()
+
+    if "warning_priority" in patient_df.columns:
+        patient_warning_mask = patient_df["warning_priority"].fillna("none").isin(selected_warning_priorities)
+        if segmentation_warning_label in selected_warning_labels and "segmentation_warning" in patient_df.columns:
+            segmentation_mask = patient_df["segmentation_warning"].fillna("").astype(str).str.strip().ne("")
+            patient_warning_mask |= segmentation_mask
+        warning_patient_ids = patient_df.loc[patient_warning_mask, "ct_id"].unique()
+        filtered_detail = filtered_detail[filtered_detail["ct_id"].isin(warning_patient_ids)]
 
     if only_warning_series and not series_df.empty:
         warning_keys = series_df[series_df["n_warnings"] > 0][["ct_id", "series_folder"]].drop_duplicates()
@@ -468,6 +492,30 @@ def main() -> None:
     patient_cols[1].metric("Warning series", int(patient_summary_row["n_warning_series"]))
     patient_cols[2].metric("Critical ROIs", int(patient_summary_row["n_critical_rois"]))
     patient_cols[3].metric("Missing ROIs", int(patient_summary_row["n_missing_rois"]))
+    patient_warning_priority = str(patient_summary_row.get("warning_priority", "none"))
+    patient_warning = str(patient_summary_row.get("warning", ""))
+    if patient_warning_priority != "none" and patient_warning:
+        warning_colors = {
+            "low": ("#fff7cc", "#a16207"),
+            "medium": ("#ffedd5", "#c2410c"),
+            "high": ("#fee2e2", "#b91c1c"),
+        }
+        background, foreground = warning_colors.get(patient_warning_priority, ("#fef3c7", "#92400e"))
+        st.markdown(
+            f"<div style='background:{background};color:{foreground};padding:0.75rem 1rem;"
+            f"border-radius:0.5rem;border-left:5px solid {foreground};'>"
+            f"<strong>{patient_warning_priority.title()} priority:</strong> {patient_warning}</div>",
+            unsafe_allow_html=True,
+        )
+    segmentation_warning = str(patient_summary_row.get("segmentation_warning", ""))
+    if segmentation_warning and segmentation_warning.lower() != "nan":
+        segmentation_evidence = str(patient_summary_row.get("segmentation_warning_evidence", ""))
+        st.markdown(
+            f"<div style='background:#f3e8ff;color:#6b21a8;padding:0.75rem 1rem;"
+            f"border-radius:0.5rem;border-left:5px solid #9333ea;'>"
+            f"<strong>{segmentation_warning}</strong> {segmentation_evidence}</div>",
+            unsafe_allow_html=True,
+        )
 
     series_labels = [
         f"{row.phase_name} | {row.metric_name} | {row.series_folder}"
