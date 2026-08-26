@@ -15,3 +15,8 @@ _00_Preprocessing/artifacts/
 _01_Segmentation/run_log.jsonl
 OUTPUT*/
 TODO
+/data/alessia.gerbasi/AI4Quality/_04_Recommendations/data
+/data/alessia.gerbasi/AI4Quality/_05_FullPipeline/.dockerignore
+/data/alessia.gerbasi/AI4Quality/_05_FullPipeline/Dockerfile
+/data/alessia.gerbasi/AI4Quality/_05_FullPipeline/test_2cases
+
