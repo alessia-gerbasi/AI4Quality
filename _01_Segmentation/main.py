@@ -227,6 +227,10 @@ def process_series(row: pd.Series, cfg: dict[str, Any], mapper: RoiMapper) -> di
 
     # ── Determine structures ──────────────────────────────────────────────────
     structures = mapper.get_structures(procedure_code, phase_name)
+    extra_rois = [r for r in str(row.get("extra_rois", "") or "").split("|") if r]
+    for roi in extra_rois:
+        if roi not in structures:
+            structures.append(roi)
     task_calls = build_task_calls(
         structures,
         licensed_enabled=cfg.get("licensed_tasks_enabled", True),

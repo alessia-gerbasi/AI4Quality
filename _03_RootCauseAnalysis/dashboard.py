@@ -17,11 +17,33 @@ except ImportError as e:
 
 
 def _label_colors(label: str) -> tuple[str, str]:
-    if label == 'timing_ok_optimal':
+    if label in {'timing_ok_optimal', 'egfr_normal'}:
         return '#e8f5e9', '#388e3c'
     if label in {'timing_ok_tolerated', 'timing_data_missing', 'phase_not_supported'}:
         return '#fff8e1', '#f9a825'
     return '#ffebee', '#c62828'
+
+
+def _load_timing_results(base_path: Path) -> pd.DataFrame:
+    frames = []
+    for path in (
+        base_path / 'results' / 'rca_results_timing_schema_v1.csv',
+        base_path / 'rca_results_all.csv',
+        base_path / 'rca_results.csv',
+    ):
+        if not path.exists():
+            continue
+        frame = pd.read_csv(path)
+        if 'rca_schema' not in frame.columns:
+            continue
+        frame = frame[frame['rca_schema'].astype(str).str.startswith('timing_schema')]
+        if not frame.empty:
+            frames.append(frame)
+    if not frames:
+        return pd.DataFrame()
+    return pd.concat(frames, ignore_index=True).drop_duplicates(
+        subset=['ct_id', 'series_folder', 'rca_schema'], keep='first'
+    )
 
 
 def main():
@@ -56,8 +78,7 @@ def main():
             link_df = pd.read_excel(link_path)           # columns: ID, PAT_N, index
             series_df = pd.read_csv(base_path.parent / '_00_Preprocessing' / 'OUTPUTS' / 'retained_series_unified_filtered.csv')
             qc_detail_df = pd.read_csv(qc_path)
-            timing_results_path = base_path / 'rca_results.csv'
-            timing_results = pd.read_csv(timing_results_path) if timing_results_path.exists() else pd.DataFrame()
+            timing_results = _load_timing_results(base_path)
             inj_loader = ExcelLoader(str(excel_path))
             inj_loader.load()
         except Exception as e:
@@ -66,10 +87,16 @@ def main():
         with st.sidebar:
             st.header("Case selection")
 
-            # Only folders with at least one critical series, ordered numerically by ct_id
+            # Only folders with at least one QC issue, ordered numerically by ct_id
             critical_mask = qc_df['status'].isin({'critical_low', 'critical_high'})
+            incoherent_mask = (
+                qc_df['attenuation_consistency'].fillna('').eq('incoherent')
+                if 'attenuation_consistency' in qc_df.columns
+                else pd.Series(False, index=qc_df.index)
+            )
+            issue_mask = critical_mask | incoherent_mask
             critical_folders = (
-                qc_df[critical_mask][['ct_id', 'ct_folder']]
+                qc_df[issue_mask][['ct_id', 'ct_folder']]
                 .drop_duplicates()
                 .sort_values('ct_id')
                 ['ct_folder']
@@ -81,11 +108,11 @@ def main():
             selected_display = st.selectbox("CT case", display_names)
             selected_folder  = display_to_full[selected_display]
 
-            # Only series within this folder that have a critical outcome
+            # Only series within this folder that have a critical or incoherent outcome
             folder_series = sorted(
                 qc_df[
                     (qc_df['ct_folder'] == selected_folder) &
-                    (qc_df['status'].isin({'critical_low', 'critical_high'}))
+                    issue_mask
                 ]['series_folder'].unique()
             )
             selected_series = st.selectbox("Series", folder_series)
@@ -140,6 +167,15 @@ def main():
                 ]
                 if not timing_match.empty:
                     patient_data['rca_label'] = timing_match.iloc[0]['rca_label']
+                timing_issue_match = timing_results[
+                    (timing_results['ct_id'].astype(str) == str(ct_id))
+                    & (timing_results['injection_index'].astype(str) == str(injection_index))
+                    & timing_results['rca_label'].astype(str).str.strip().str.lower().isin({'early', 'late'})
+                ]
+                if not timing_issue_match.empty:
+                    timing_issue = timing_issue_match.iloc[0]
+                    patient_data['_timing_issue_label'] = str(timing_issue['rca_label']).strip().lower()
+                    patient_data['_timing_issue_series_folder'] = timing_issue.get('series_folder', '')
 
             try:
                 evaluator = RuleEvaluator(str(schema_dir / f'{selected_schema}.yaml'), str(thresh_path))
@@ -154,7 +190,11 @@ def main():
             ]
             qc_statuses  = qc_rows['status'].unique().tolist()
             affected_rois = qc_rows['roi_name'].unique().tolist()
-            worst = 'critical_high' if 'critical_high' in qc_statuses else ('critical_low' if 'critical_low' in qc_statuses else qc_statuses[0] if qc_statuses else '—')
+            has_incoherent_attenuation = (
+                'attenuation_consistency' in qc_rows.columns
+                and qc_rows['attenuation_consistency'].fillna('').eq('incoherent').any()
+            )
+            worst = 'critical_high' if 'critical_high' in qc_statuses else ('critical_low' if 'critical_low' in qc_statuses else ('incoherent_attenuation' if has_incoherent_attenuation else qc_statuses[0] if qc_statuses else '—'))
             qc_color = '#ffebee' if 'critical' in worst else '#fff9c4'
             st.markdown(
                 f"""<div style="background:{qc_color}; border-left:4px solid #c62828;
@@ -166,6 +206,22 @@ def main():
                 </div>""",
                 unsafe_allow_html=True
             )
+
+            if 'attenuation_message' in qc_rows.columns:
+                attenuation_rows = qc_rows[qc_rows['attenuation_message'].fillna('').astype(str).str.strip().ne('')]
+                for _, attenuation_row in attenuation_rows.iterrows():
+                    incoherent = attenuation_row.get('attenuation_consistency') == 'incoherent'
+                    color = '#c62828' if incoherent else '#0277bd'
+                    n_slices = attenuation_row.get('edge_slice_count')
+                    slice_label = f"first/last {int(n_slices)} vessel slices" if pd.notna(n_slices) else 'vessel endpoints'
+                    st.markdown(
+                        f"""<div style="background:{color}0d; border-left:4px solid {color};
+                                       padding:10px 16px; border-radius:6px; margin-bottom:12px; font-size:13px;">
+                            <b>Attenuation consistency ({slice_label})</b><br/>
+                            {attenuation_row.get('attenuation_message')}
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
 
             card  = result.get('card', {})
             label = result.get('diagnosis_label', 'unknown')
@@ -201,7 +257,7 @@ def main():
                 with col2:
                     st.subheader("Decision path")
                     for step in result.get('decision_path', []):
-                        icon = "✅" if step['result'] else "❌"
+                        icon = "✅" if step['result'] else ("⚠️" if step.get('trace_type') == 'availability' else "❌")
                         st.markdown(f"{icon} **{step['question']}**")
                         st.caption(f"`{step['condition']}` → `{step.get('substituted_condition', '')}`")
 

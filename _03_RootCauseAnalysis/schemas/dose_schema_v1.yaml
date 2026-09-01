@@ -39,7 +39,11 @@ variables:
   dose_above_max:
     calculation: "@has_administered_dose and @has_patient_weight and @administered_dose_g > @dose_g_max"
   timing_issue:
-    calculation: "str(@rca_label).strip().lower() in ['early', 'late']"
+    calculation: "str(@rca_label).strip().lower() in ['early', 'late'] or str(@_timing_issue_label).strip().lower() in ['early', 'late']"
+  timing_issue_label:
+    calculation: "str(@rca_label).strip().lower() if str(@rca_label).strip().lower() in ['early', 'late'] else str(@_timing_issue_label).strip().lower()"
+  timing_issue_source:
+    calculation: "@_timing_issue_series_folder"
 
 decisions:
   root:
@@ -118,7 +122,7 @@ outcomes:
     label: "timing_error"
     card:
       title: "See timing error"
-      explanation: "The timing analysis reported a @rca_label acquisition issue."
+      explanation: "The timing analysis reported a @timing_issue_label acquisition issue in series @timing_issue_source."
       impact: "Timing, rather than dose, may be contributing to the quality failure."
       recommendations:
         - "Review the timing analysis and injection-to-acquisition delay."
@@ -127,7 +131,7 @@ outcomes:
     label: "other"
     card:
       title: "See Other"
-      explanation: "Patient weight was unavailable and no early or late timing issue was supplied."
+      explanation: "Patient weight was unavailable and no early or late timing issue was found for this CT/injection."
       impact: "The dose range cannot be calculated reliably from the available data."
       recommendations:
         - "Review the patient weight and other possible causes of the quality failure."

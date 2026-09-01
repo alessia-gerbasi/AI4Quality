@@ -96,7 +96,7 @@ independent_checks:
     low_outcome: outcome_contrast_load_low
     high_outcome: outcome_contrast_load_high
     high_condition: "@contrast_volume_ml > @contrast_load_max_ml"
-    missing_outcome: outcome_missing_data
+    missing_outcome: outcome_contrast_load_missing
   - name: saline_volume
     question: "Is saline volume within [M-N]?"
     available_condition: "@has_saline_volume"
@@ -291,6 +291,13 @@ outcomes:
       explanation: "Measured average contrast flow rate: @flow_rate_ml_s ml/s. Expected range [Q-R]: [@flow_min_ml_s, @flow_max_ml_s] ml/s, calculated as IDR [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s * 1000 / @contrast_concentration_mg_ml mgI/ml."
       impact: "Flow rate deviated from the IDR- and concentration-based protocol range."
       recommendations: ["Review the programmed flow rate and contrast concentration."]
+  outcome_contrast_load_missing:
+    label: "contrast_load_input_missing"
+    card:
+      title: "Contrast-load range unavailable"
+      explanation: "@protocol_missing_details"
+      impact: "The contrast-load range could not be calculated, but the remaining protocol checks were still evaluated independently."
+      recommendations: ["Review the patient weight, contrast concentration, and contrast volume fields needed for the contrast-load range."]
   outcome_execution_error:
     label: "protocol_execution_error"
     card:

@@ -8,7 +8,21 @@ import pandas as pd
 import streamlit as st
 
 from build_database import DB_PATH, build_database
-from llm_recommendations import DEFAULT_MODEL, generate_recommendation
+from llm_recommendations import DEFAULT_MODEL, generate_recommendation, image_quality_findings
+
+FINDING_LABELS = {
+    "contrast_load_input_missing": "Patient weight missing for contrast-load range",
+    "saline_volume_high": "Saline volume high",
+    "saline_volume_low": "Saline volume low",
+    "contrast_volume_high": "Contrast volume high",
+    "contrast_volume_low": "Contrast volume low",
+    "idr_high": "IDR high",
+    "idr_low": "IDR low",
+    "flow_rate_high": "Flow rate high",
+    "flow_rate_low": "Flow rate low",
+    "pressure_high": "Pressure high",
+    "protocol_execution_error": "Executed protocol differs from programmed",
+}
 
 
 def load_data():
@@ -16,7 +30,8 @@ def load_data():
         build_database()
     with sqlite3.connect(DB_PATH) as db:
         tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-        if "patient_warnings" not in tables:
+        quality_columns = {row[1] for row in db.execute("PRAGMA table_info(image_quality)")}
+        if "patient_warnings" not in tables or "attenuation_consistency" not in quality_columns:
             build_database()
             return load_data()
         return {name: pd.read_sql_query(f"SELECT * FROM {name}", db) for name in ("exams", "series", "image_quality", "rca", "injector_data", "patient_warnings")}
@@ -100,12 +115,13 @@ def main():
         if pd.isna(diagnosis_text) or not str(diagnosis_text).strip():
             diagnosis_text = row.get("rca_label", "")
         labels = str(diagnosis_text).split(" | ")
-        for diagnosis in labels:
+        explanations = [item.strip() for item in str(row.get("rca_explanation", "")).splitlines() if item.strip()]
+        recommendations = [item.strip() for item in str(row.get("rca_recommendations", "")).split(" | ") if item.strip()]
+        for index, diagnosis in enumerate(labels):
             if diagnosis and diagnosis != "nan":
-                findings.append({"Schema": row.get("rca_schema"), "Series": row.get("series_folder"), "Finding": diagnosis, "Explanation": row.get("rca_explanation", ""), "Recommendations": row.get("rca_recommendations", "")})
+                findings.append({"Schema": row.get("rca_schema"), "Series": row.get("series_folder"), "Finding": FINDING_LABELS.get(diagnosis, diagnosis), "Explanation": explanations[index] if index < len(explanations) else row.get("rca_explanation", ""), "Recommendations": recommendations[index] if index < len(recommendations) else row.get("rca_recommendations", "")})
     for _, row in quality.iterrows():
-        if str(row.get("status", "")).lower() not in {"optimal", "acceptable_low", "acceptable_high", "nan"}:
-            findings.append({"Schema": "image_quality", "Series": row.get("series_folder"), "Finding": f"{row.get('roi_name')} {row.get('status')}", "Explanation": f"{row.get('metric_name')}: evaluated value {row.get('evaluated_value')}", "Recommendations": "Review image-quality measurement and acquisition protocol."})
+        findings.extend(image_quality_findings(row.to_dict()))
 
     metric_columns = st.columns(3)
     metric_columns[0].metric("Series", analyzed_series.series_folder.nunique())

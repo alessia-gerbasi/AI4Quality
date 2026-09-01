@@ -84,6 +84,13 @@ selection:
     - toradd
     - embolia
 
+  # Additional structures to segment (on top of the procedure-code-based ROI list)
+  # when a keyword is found in the series text. E.g. pulmonary embolism series
+  # ("embolia") always need pulmonary_artery segmented, as in TACACP.
+  extra_roi_keywords:
+    embolia:
+      - pulmonary_artery
+
   # If a keyword in this map matches in the text, the corresponding exclude keyword is cancelled.
   exclude_keyword_veto:
     tor:

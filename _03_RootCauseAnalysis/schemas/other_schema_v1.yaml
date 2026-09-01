@@ -6,6 +6,10 @@ variables:
     calculation: "@{eGFR (-1 = N/A)}"
   has_egfr:
     calculation: "@egfr != None and @egfr >= 0"
+  egfr_stage:
+    calculation: "('Stage 1' if @egfr >= 90 else ('Stage 2' if @egfr >= 60 else ('Stage 3a' if @egfr >= 45 else ('Stage 3b' if @egfr >= 30 else ('Stage 4' if @egfr >= 15 else 'Stage 5'))))) if @has_egfr else 'Unavailable'"
+  egfr_stage_range:
+    calculation: "('90 or higher' if @egfr >= 90 else ('60-89' if @egfr >= 60 else ('45-59' if @egfr >= 45 else ('30-44' if @egfr >= 30 else ('15-29' if @egfr >= 15 else 'less than 15'))))) if @has_egfr else 'unavailable'"
   has_noncontrast_series:
     calculation: "@_has_noncontrast_series"
   liver_problem_present:
@@ -32,7 +36,7 @@ independent_checks:
     report_outcome: outcome_egfr_normal
     low_outcome: outcome_egfr_moderate
     high_outcome: outcome_egfr_severe
-    high_condition: "@egfr <= 30"
+    high_condition: "@egfr < 30"
     missing_outcome: outcome_egfr_missing
   - name: liver_enhancement
     question: "Is average precontrast liver HU within 40-70 HU?"
@@ -70,21 +74,21 @@ outcomes:
     label: "egfr_normal"
     card:
       title: "Normal renal function"
-      explanation: "eGFR: @egfr ml/min/1.73 m2. Stage 1: 90 or higher."
+      explanation: "eGFR: @egfr ml/min/1.73 m2. @egfr_stage: @egfr_stage_range."
       impact: "Kidney function is in the normal or high range."
       recommendations: []
   outcome_egfr_moderate:
     label: "egfr_moderate_loss"
     card:
-      title: "Moderate loss of kidney function: at-risk patient"
-      explanation: "eGFR: @egfr ml/min/1.73 m2. Stage 2-3a range: 31-89."
+      title: "Reduced renal function: @egfr_stage"
+      explanation: "eGFR: @egfr ml/min/1.73 m2. @egfr_stage: @egfr_stage_range."
       impact: "Renal function is reduced and may be relevant when reviewing contrast administration."
       recommendations: []
   outcome_egfr_severe:
     label: "egfr_severe_damage"
     card:
-      title: "Severe kidney damage"
-      explanation: "eGFR: @egfr ml/min/1.73 m2. Stage 4-5 range: 30 or lower."
+      title: "Severely reduced renal function: @egfr_stage"
+      explanation: "eGFR: @egfr ml/min/1.73 m2. @egfr_stage: @egfr_stage_range."
       impact: "Severely reduced renal function should be considered in the clinical review."
       recommendations: []
   outcome_egfr_missing:

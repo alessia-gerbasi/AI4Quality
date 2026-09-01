@@ -19,6 +19,15 @@ timing_adjustments:
       match_values: ["venoso centrale", "central venous"]
       offset_seconds: -8
 
+# Overrides the procedure code used to look up ROI/HU/timing rules whenever a
+# keyword is found in the series name/folder text, regardless of the exam's
+# actual procedure code. E.g. a series named "... embolia ..." is a pulmonary
+# embolism study and must be evaluated against pulmonary_artery/TACACP rules
+# even when the exam was ordered under a different procedure code (e.g. TACTON).
+keyword_overrides:
+  embolia:
+    override_procedure_code: TACACP
+
 procedures:
   TACPEC:
     description: "TAC ADDOME E PELVI CON CONTR."

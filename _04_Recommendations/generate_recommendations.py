@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 
 from build_database import DB_PATH, build_database
-from llm_recommendations import DEFAULT_MODEL, generate_recommendation
+from llm_recommendations import DEFAULT_MODEL, generate_recommendation, image_quality_findings
 
 
 def _normalise_notes(values: pd.Series) -> list[str]:
@@ -17,6 +17,40 @@ def _normalise_notes(values: pd.Series) -> list[str]:
         lambda note: "; ".join(part.strip() for part in re.split(r"[|;]", str(note)) if part.strip())
     )
     return notes.drop_duplicates().tolist()
+
+
+FINDING_LABELS = {
+    "contrast_load_input_missing": "Patient weight missing for contrast-load range",
+    "saline_volume_high": "Saline volume high",
+    "saline_volume_low": "Saline volume low",
+    "contrast_volume_high": "Contrast volume high",
+    "contrast_volume_low": "Contrast volume low",
+    "idr_high": "IDR high",
+    "idr_low": "IDR low",
+    "flow_rate_high": "Flow rate high",
+    "flow_rate_low": "Flow rate low",
+    "pressure_high": "Pressure high",
+    "protocol_execution_error": "Executed protocol differs from programmed",
+}
+
+
+def _split_row_findings(row: pd.Series) -> list[dict]:
+    diagnosis_text = row.get("rca_diagnoses")
+    if pd.isna(diagnosis_text) or not str(diagnosis_text).strip():
+        diagnosis_text = row.get("rca_label", "")
+    diagnoses = [item for item in str(diagnosis_text).split(" | ") if item and item != "nan"]
+    explanations = [item.strip() for item in str(row.get("rca_explanation", "")).splitlines() if item.strip()]
+    recommendations = [item.strip() for item in str(row.get("rca_recommendations", "")).split(" | ") if item.strip()]
+    findings = []
+    for index, diagnosis in enumerate(diagnoses):
+        findings.append({
+            "Schema": row.get("rca_schema"),
+            "Series": row.get("series_folder"),
+            "Finding": FINDING_LABELS.get(diagnosis, diagnosis),
+            "Explanation": explanations[index] if index < len(explanations) else row.get("rca_explanation", ""),
+            "Recommendations": recommendations[index] if index < len(recommendations) else row.get("rca_recommendations", ""),
+        })
+    return findings
 
 
 def _patient_inputs(data: dict[str, pd.DataFrame], patient_id: str) -> tuple[dict, list[dict], list[dict]]:
@@ -39,27 +73,9 @@ def _patient_inputs(data: dict[str, pd.DataFrame], patient_id: str) -> tuple[dic
 
     findings = []
     for _, row in patient.iterrows():
-        diagnosis_text = row.get("rca_diagnoses")
-        if pd.isna(diagnosis_text) or not str(diagnosis_text).strip():
-            diagnosis_text = row.get("rca_label", "")
-        for diagnosis in str(diagnosis_text).split(" | "):
-            if diagnosis and diagnosis != "nan":
-                findings.append({
-                    "Schema": row.get("rca_schema"),
-                    "Series": row.get("series_folder"),
-                    "Finding": diagnosis,
-                    "Explanation": row.get("rca_explanation", ""),
-                    "Recommendations": row.get("rca_recommendations", ""),
-                })
+        findings.extend(_split_row_findings(row))
     for _, row in quality.iterrows():
-        if str(row.get("status", "")).lower() not in {"optimal", "acceptable_low", "acceptable_high", "nan"}:
-            findings.append({
-                "Schema": "image_quality",
-                "Series": row.get("series_folder"),
-                "Finding": f"{row.get('roi_name')} {row.get('status')}",
-                "Explanation": f"{row.get('metric_name')}: evaluated value {row.get('evaluated_value')}",
-                "Recommendations": "Review image-quality measurement and acquisition protocol.",
-            })
+        findings.extend(image_quality_findings(row.to_dict()))
 
     source["notes"] = _normalise_notes(patient.get("rca_notes", pd.Series(dtype=str)))
     exam_findings = rca[rca.ct_id.astype(str).eq(patient_id)].to_dict("records")

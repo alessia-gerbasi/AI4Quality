@@ -89,6 +89,10 @@ def main() -> int:
             k.upper(): [v.lower() for v in vals]
             for k, vals in cfg.selection.get("procedure_specific_include_only", {}).items()
         },
+        extra_roi_keywords={
+            k.lower(): list(vals)
+            for k, vals in cfg.selection.get("extra_roi_keywords", {}).items()
+        },
         precedence=str(cfg.selection["precedence"]).lower(),
     )
 
@@ -120,6 +124,7 @@ def main() -> int:
             "phase_name": dec.phase_name,
             "include_hits": "|".join(dec.include_hits),
             "exclude_hits": "|".join(dec.exclude_hits),
+            "extra_rois": "|".join(dec.extra_rois),
             "merge_group_id": merge.merge_group_id if merge else None,
             "merge_status": merge.merge_status if merge else "single",
             "merge_part_index": merge.part_index if merge else None,

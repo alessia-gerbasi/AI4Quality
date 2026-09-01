@@ -292,6 +292,19 @@ def _metric_card(row: pd.Series) -> str:
     if isinstance(warning, str) and warning.strip():
         warning_html = f"<div style='margin-top:0.4rem;color:#7f1d1d;'><strong>Warning:</strong> {warning}</div>"
 
+    attenuation_html = ""
+    attenuation_message = row.get("attenuation_message")
+    if isinstance(attenuation_message, str) and attenuation_message.strip():
+        incoherent = str(row.get("attenuation_consistency", "")) == "incoherent"
+        attenuation_color = "#b91c1c" if incoherent else "#0369a1"
+        edge_slice_count = row.get("edge_slice_count")
+        slice_label = f"first/last {int(edge_slice_count)} vessel slices" if pd.notna(edge_slice_count) else "vessel endpoints"
+        attenuation_html = (
+            f"<div style='margin-top:0.75rem;padding:0.65rem 0.75rem;border-left:4px solid {attenuation_color};"
+            f"background:{attenuation_color}0d;color:#1e293b;'><strong>Attenuation consistency "
+            f"({slice_label}):</strong><br>{attenuation_message}</div>"
+        )
+
     return f"""
     <div style="background:{color}14;border-left:6px solid {color};padding:0.9rem 1rem;border-radius:0.6rem;margin-bottom:0.75rem;">
       <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;">
@@ -307,6 +320,7 @@ def _metric_card(row: pd.Series) -> str:
       {baseline_label}
       {delta_label}
       {threshold_label}
+    {attenuation_html}
       {warning_html}
     </div>
     """

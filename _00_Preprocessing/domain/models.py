@@ -42,6 +42,7 @@ class SelectionDecision:
     include_hits: list[str]
     exclude_hits: list[str]
     phase_name: str | None = None
+    extra_rois: list[str] = field(default_factory=list)
 
 
 @dataclass

@@ -32,7 +32,7 @@ def build_database(output_path: Path = DB_PATH) -> Path:
         DROP TABLE IF EXISTS patient_warnings;
         CREATE TABLE exams (ct_id TEXT PRIMARY KEY, ct_folder TEXT, patient_name TEXT, injection_index TEXT, patient_data_json TEXT);
         CREATE TABLE series (ct_id TEXT, series_folder TEXT, phase_name TEXT, procedure_code TEXT, scanner TEXT, series_data_json TEXT, PRIMARY KEY (ct_id, series_folder));
-        CREATE TABLE image_quality (ct_id TEXT, series_folder TEXT, roi_name TEXT, metric_name TEXT, status TEXT, evaluated_value REAL, mean_hu REAL, mean_hu_precontrast REAL, qc_data_json TEXT);
+        CREATE TABLE image_quality (ct_id TEXT, series_folder TEXT, roi_name TEXT, metric_name TEXT, status TEXT, evaluated_value REAL, mean_hu REAL, mean_hu_precontrast REAL, proximal_mean_hu REAL, distal_mean_hu REAL, proximal_status TEXT, distal_status TEXT, attenuation_consistency TEXT, attenuation_message TEXT, edge_slice_count INTEGER, qc_data_json TEXT);
         CREATE TABLE rca (ct_id TEXT, series_folder TEXT, rca_schema TEXT, rca_label TEXT, rca_diagnoses TEXT, rca_explanation TEXT, rca_notes TEXT, rca_recommendations TEXT, rca_data_json TEXT);
         CREATE TABLE injector_data (ct_id TEXT, injection_index TEXT, data_json TEXT);
         CREATE TABLE patient_warnings (ct_id TEXT PRIMARY KEY, warning_priority TEXT, warning TEXT, warning_evidence TEXT, segmentation_warning TEXT, segmentation_warning_evidence TEXT, warning_data_json TEXT);
@@ -59,7 +59,17 @@ def build_database(output_path: Path = DB_PATH) -> Path:
         for _, row in series.iterrows():
             db.execute("INSERT OR REPLACE INTO series VALUES (?, ?, ?, ?, ?, ?)", (str(row.get("ct_id")), clean(row.get("series_folder")), clean(row.get("phase_name")), clean(row.get("procedure_code_value")), clean(row.get("scanner")), json.dumps({k: clean(v) for k, v in row.to_dict().items()}, default=str)))
         for _, row in qc.iterrows():
-            db.execute("INSERT INTO image_quality VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (str(row.get("ct_id")), clean(row.get("series_folder")), clean(row.get("roi_name")), clean(row.get("metric_name")), clean(row.get("status")), clean(row.get("evaluated_value")), clean(row.get("mean_hu")), clean(row.get("mean_hu_precontrast")), json.dumps({k: clean(v) for k, v in row.to_dict().items()}, default=str)))
+            db.execute(
+                "INSERT INTO image_quality VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    str(row.get("ct_id")), clean(row.get("series_folder")), clean(row.get("roi_name")),
+                    clean(row.get("metric_name")), clean(row.get("status")), clean(row.get("evaluated_value")),
+                    clean(row.get("mean_hu")), clean(row.get("mean_hu_precontrast")), clean(row.get("proximal_mean_hu")),
+                    clean(row.get("distal_mean_hu")), clean(row.get("proximal_status")), clean(row.get("distal_status")),
+                    clean(row.get("attenuation_consistency")), clean(row.get("attenuation_message")),
+                    clean(row.get("edge_slice_count")), json.dumps({k: clean(v) for k, v in row.to_dict().items()}, default=str),
+                ),
+            )
         for _, row in rca.iterrows():
             db.execute("INSERT INTO rca VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (str(row.get("ct_id")), clean(row.get("series_folder")), clean(row.get("rca_schema")), clean(row.get("rca_label")), clean(row.get("rca_diagnoses")), clean(row.get("rca_explanation")), clean(row.get("rca_notes")), clean(row.get("rca_recommendations")), json.dumps({k: clean(v) for k, v in row.to_dict().items()}, default=str)))
         for _, row in patient_warnings.iterrows():

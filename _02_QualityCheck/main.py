@@ -27,8 +27,19 @@ def _dependency_error_message(missing_module: str, script_name: str) -> str:
 try:
     import pandas as pd
 
-    from _02_QualityCheck.config_loader import load_rules, normalize_phase, resolve_effective_phase
-    from _02_QualityCheck.hu_metrics import load_nifti_array, measure_roi_statistics, select_slice_for_visualization
+    from _02_QualityCheck.config_loader import (
+        load_keyword_overrides,
+        load_rules,
+        normalize_phase,
+        resolve_effective_phase,
+        resolve_effective_procedure_code,
+    )
+    from _02_QualityCheck.hu_metrics import (
+        load_nifti_array,
+        measure_roi_edge_means,
+        measure_roi_statistics,
+        select_slice_for_visualization,
+    )
     from _02_QualityCheck.models import RoiMeasurement, SeriesEvaluation
     from _02_QualityCheck.reporting import (
         build_aggregate_stats_dataframe,
@@ -85,11 +96,22 @@ def _parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--max-cases", type=int, default=None, help="Optional limit for quick tests")
     parser.add_argument("--ct-ids", type=int, nargs="*", default=None, help="Optional list of ct_id to process")
+    parser.add_argument(
+        "--vascular-edge-slices",
+        type=int,
+        default=5,
+        help="Number of first and last vessel-containing slices used for attenuation consistency (default: 5)",
+    )
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     return parser.parse_args()
 
 
-def _collect_measurements(ct_path: Path, rois: list[str], series_dir: Path) -> tuple[list[RoiMeasurement], dict[str, object], object]:
+def _collect_measurements(
+    ct_path: Path,
+    rois: list[str],
+    series_dir: Path,
+    edge_slices: int | None = None,
+) -> tuple[list[RoiMeasurement], dict[str, object], object]:
     ct = load_nifti_array(ct_path)
     measurements: list[RoiMeasurement] = []
     roi_masks: dict[str, object] = {}
@@ -102,6 +124,9 @@ def _collect_measurements(ct_path: Path, rois: list[str], series_dir: Path) -> t
 
         mask = load_nifti_array(mask_path)
         mean_hu, std_hu, median_hu, n_vox = measure_roi_statistics(ct, mask)
+        proximal_mean_hu, distal_mean_hu = (
+            measure_roi_edge_means(ct, mask, edge_slices) if edge_slices is not None else (None, None)
+        )
         z_idx = select_slice_for_visualization(mask)
         measurements.append(
             RoiMeasurement(
@@ -112,6 +137,9 @@ def _collect_measurements(ct_path: Path, rois: list[str], series_dir: Path) -> t
                 median_std_hu=std_hu,
                 voxel_count=n_vox,
                 slice_index=z_idx,
+                proximal_mean_hu=proximal_mean_hu,
+                distal_mean_hu=distal_mean_hu,
+                edge_slice_count=edge_slices,
             )
         )
         roi_masks[roi] = mask
@@ -123,17 +151,64 @@ def _index_by_roi(measurements: list[RoiMeasurement]) -> dict[str, RoiMeasuremen
     return {m.roi_name: m for m in measurements}
 
 
-def _evaluate_series(row: pd.Series, df_patient: pd.DataFrame, rules, nii_root: Path, output_dir: Path) -> SeriesEvaluation | None:
+def _classify_vascular_attenuation(measurement: RoiMeasurement, threshold) -> bool:
+    proximal_score = score_value(measurement.proximal_mean_hu, threshold)
+    distal_score = score_value(measurement.distal_mean_hu, threshold)
+    measurement.proximal_status = proximal_score.status
+    measurement.distal_status = distal_score.status
+
+    critical = {"critical_low", "critical_high"}
+    incoherent = proximal_score.status != distal_score.status and bool(
+        {proximal_score.status, distal_score.status} & critical
+    )
+    measurement.attenuation_consistency = "incoherent" if incoherent else "consistent"
+
+    roi_label = measurement.roi_name.replace("_", " ").title()
+    values = (
+        f"Proximal: {measurement.proximal_mean_hu:.0f} HU ({proximal_score.label}); "
+        f"Distal: {measurement.distal_mean_hu:.0f} HU ({distal_score.label})."
+    )
+    if incoherent:
+        measurement.attenuation_message = (
+            f"{roi_label} attenuation is incoherent. {values} In the absence of pathological issues, "
+            "incoherent attenuation may suggest a timing-related acquisition error."
+        )
+    elif proximal_score.status == distal_score.status == "critical_low":
+        measurement.attenuation_message = f"{roi_label} enhancement is consistently low. {values}"
+    elif proximal_score.status == distal_score.status == "critical_high":
+        measurement.attenuation_message = f"{roi_label} enhancement is consistently high. {values}"
+    else:
+        measurement.attenuation_message = f"{roi_label} endpoint attenuation is consistent. {values}"
+    return incoherent
+
+
+def _evaluate_series(
+    row: pd.Series,
+    df_patient: pd.DataFrame,
+    rules,
+    nii_root: Path,
+    output_dir: Path,
+    keyword_overrides: dict[str, str] | None = None,
+    vascular_edge_slices: int = 5,
+) -> SeriesEvaluation | None:
     phase = resolve_effective_phase(row.get("phase_name", ""), row.get("CT_type", ""))
     ct_type = str(row.get("CT_type", "") or "")
-    code = str(row.get("procedure_code_norm", "")).upper()
-    rule = rules.get(code)
+    raw_code = str(row.get("procedure_code_norm", "")).upper()
+    series_text = f"{row.get('series_name', '')} {row.get('series_folder', '')}"
+    # The procedure code identity is never changed; only the ROI/HU lookup uses the override.
+    rule_lookup_code = resolve_effective_procedure_code(raw_code, series_text, keyword_overrides or {})
+    code = raw_code
+    rule = rules.get(rule_lookup_code)
     if not rule:
         return None
 
     phase_rule = rule.phases.get(phase)
     if not phase_rule or not phase_rule.rois:
         return None
+
+    override_note = (
+        f"ROI/HU thresholds referenced from {rule_lookup_code} due to keyword match" if rule_lookup_code != raw_code else None
+    )
 
     series_dir = build_series_dir(nii_root, row)
     ct_path = series_dir / "CT.nii.gz"
@@ -152,11 +227,16 @@ def _evaluate_series(row: pd.Series, df_patient: pd.DataFrame, rules, nii_root: 
             threshold=phase_rule.hu_threshold,
             measurements=[RoiMeasurement(roi_name=r) for r in phase_rule.rois],
             scores={r: score_value(None, phase_rule.hu_threshold) for r in phase_rule.rois},
-            warnings=["CT.nii.gz is missing"],
+            warnings=["CT.nii.gz is missing"] + ([override_note] if override_note else []),
         )
 
-    measurements, roi_masks, ct = _collect_measurements(ct_path, phase_rule.rois, series_dir)
-    warnings: list[str] = []
+    measurements, roi_masks, ct = _collect_measurements(
+        ct_path,
+        phase_rule.rois,
+        series_dir,
+        edge_slices=vascular_edge_slices if ct_type.strip().lower() == "vascular" else None,
+    )
+    warnings: list[str] = [override_note] if override_note else []
     metric_name = f"HU_{phase}"
     threshold = phase_rule.hu_threshold
     reference_series_folder = None
@@ -200,6 +280,9 @@ def _evaluate_series(row: pd.Series, df_patient: pd.DataFrame, rules, nii_root: 
         scores[m.roi_name] = score
         if score.warning:
             warnings.append(f"{m.roi_name}: {score.warning}")
+        if ct_type.strip().lower() == "vascular" and m.proximal_mean_hu is not None and m.distal_mean_hu is not None:
+            if _classify_vascular_attenuation(m, phase_rule.hu_threshold):
+                warnings.append(m.attenuation_message)
 
     if phase == "venosa":
         liver = next((m for m in measurements if m.roi_name == "liver"), None)
@@ -247,6 +330,7 @@ def run() -> int:
     logging.basicConfig(level=getattr(logging, args.log_level), format="%(asctime)s [%(levelname)s] %(message)s")
 
     rules = load_rules(args.rules)
+    keyword_overrides = load_keyword_overrides(args.rules)
     df = load_series_table(args.csv)
 
     if args.ct_ids:
@@ -281,17 +365,20 @@ def run() -> int:
                         rules=rules,
                         nii_root=args.nii_root,
                         output_dir=output_dir,
+                        keyword_overrides=keyword_overrides,
+                        vascular_edge_slices=args.vascular_edge_slices,
                     )
                     if evaluation is not None:
                         all_results.append(evaluation)
                 except Exception as exc:
                     log.exception("Failed HU evaluation for ct_id=%s series=%s", ct_id, row.get("series_folder", ""))
+                    raw_code = str(row.get("procedure_code_norm", "")).upper()
                     fallback = SeriesEvaluation(
                         ct_id=int(row["ct_id"]),
                         ct_name=str(row.get("ct_name", "")),
                         ct_folder=str(row.get("ct_folder", "")),
                         ct_type=str(row.get("CT_type", "") or ""),
-                        procedure_code=str(row.get("procedure_code_norm", "")).upper(),
+                        procedure_code=raw_code,
                         phase_name=normalize_phase(row.get("phase_name", "")),
                         series_folder=str(row.get("series_folder", "")),
                         series_dir=str(build_series_dir(args.nii_root, row)),

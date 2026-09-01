@@ -30,6 +30,22 @@ class RuleEvaluator:
         # Legacy format where procedure is top-level
         proc_legacy = self.thresholds.get(procedure, {}) if isinstance(self.thresholds, dict) else {}
         return proc_legacy if isinstance(proc_legacy, dict) else {}
+
+    def _resolve_effective_procedure(self, procedure: str, series_text: str) -> str:
+        """Return the procedure code to use for threshold lookup, applying keyword overrides.
+
+        Does not change the exam's actual procedure_code identity; only affects which
+        ROI/HU/timing values are referenced (e.g. an 'embolia' series always references
+        TACACP's pulmonary_artery values regardless of its own procedure code).
+        """
+        text = (series_text or "").strip().lower()
+        overrides = self.thresholds.get('keyword_overrides', {}) if isinstance(self.thresholds, dict) else {}
+        for keyword, entry in (overrides or {}).items():
+            if keyword and str(keyword).lower() in text:
+                override_code = (entry or {}).get('override_procedure_code')
+                if override_code:
+                    return override_code
+        return procedure
     
     def evaluate(self, patient_data: Dict[str, Any]) -> Dict[str, Any]:
         """Run schema against patient data, return diagnosis + path trace"""
@@ -96,10 +112,11 @@ class RuleEvaluator:
                 available = self._evaluate_condition(available_condition, variables)
                 self.trace.append({
                     'node': name,
-                    'question': check.get('question', name),
+                    'question': check.get('available_question') or f"Is {name.replace('_', ' ')} data available?",
                     'condition': available_condition,
                     'substituted_condition': self._substitute_refs(available_condition, variables, {}),
                     'result': available,
+                    'trace_type': 'availability',
                 })
 
             if not available:
@@ -302,6 +319,7 @@ class RuleEvaluator:
 
         # 3. $phase.field.index  — lookup from threshold table for current procedure
         procedure = patient_data.get('Order Procedure') or patient_data.get('procedure_code', '')
+        procedure = self._resolve_effective_procedure(procedure, patient_data.get('_series_folder', ''))
         for ref in re.findall(r'\$([\w.]+)', expr):
             val = self._resolve_param(ref, procedure)
             if val is not None:
@@ -520,6 +538,7 @@ class RuleEvaluator:
         """Lookup threshold for source: roi_hu_timing_table variables."""
         procedure = (patient_data.get('Order Procedure')
                      or patient_data.get('procedure_code', 'TACPEC'))
+        procedure = self._resolve_effective_procedure(procedure, patient_data.get('_series_folder', ''))
         phase = var_def.get('phase', 'arteriosa')
         field = var_def.get('field', 'timing')
         index = var_def.get('index')

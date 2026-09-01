@@ -17,6 +17,7 @@ class KeywordSelector(SelectorStrategy):
     force_accept_keywords: list[str]
     exclude_keyword_veto: dict[str, list[str]]
     procedure_specific_include_only: dict[str, list[str]]
+    extra_roi_keywords: dict[str, list[str]] | None = None
     precedence: str = "exclude"
 
     def _norm(self, s: str | None) -> str:
@@ -31,10 +32,20 @@ class KeywordSelector(SelectorStrategy):
                 return keyword
         return None
 
+    def _extract_extra_rois(self, text: str) -> list[str]:
+        # Add extra structures (e.g. embolia -> pulmonary_artery) on top of the procedure-code ROI list.
+        seen: dict[str, None] = {}
+        for keyword, rois in (self.extra_roi_keywords or {}).items():
+            if keyword in text:
+                for roi in rois:
+                    seen[roi] = None
+        return list(seen)
+
     def decide(self, item: EnrichedSeriesRecord) -> SelectionDecision:
         procedure = self._norm(item.procedure_code_value)
         text = self._norm(item.base.series_description) + " " + self._norm(item.base.series_folder)
         phase_name = self._extract_phase_name(text)
+        extra_rois = self._extract_extra_rois(text)
         if not procedure:
             return SelectionDecision(
                 status="rejected",
@@ -43,6 +54,7 @@ class KeywordSelector(SelectorStrategy):
                 include_hits=[],
                 exclude_hits=[],
                 phase_name=phase_name,
+                extra_rois=extra_rois,
             )
 
         if procedure.upper() not in self.accepted_codes:
@@ -53,6 +65,7 @@ class KeywordSelector(SelectorStrategy):
                 include_hits=[],
                 exclude_hits=[],
                 phase_name=phase_name,
+                extra_rois=extra_rois,
             )
 
         # Procedure-specific include filter: if configured, reject unless text matches one of the required terms.
@@ -65,6 +78,7 @@ class KeywordSelector(SelectorStrategy):
                 include_hits=[],
                 exclude_hits=[],
                 phase_name=phase_name,
+                extra_rois=extra_rois,
             )
 
         include_hits = [k for k in self.include_keywords if k in text]
@@ -97,6 +111,7 @@ class KeywordSelector(SelectorStrategy):
                 include_hits=include_hits,
                 exclude_hits=exclude_hits,
                 phase_name=phase_name,
+                extra_rois=extra_rois,
             )
 
         if exclude_hits:
@@ -107,6 +122,7 @@ class KeywordSelector(SelectorStrategy):
                 include_hits=include_hits,
                 exclude_hits=exclude_hits,
                 phase_name=phase_name,
+                extra_rois=extra_rois,
             )
 
         if include_hits:
@@ -117,6 +133,7 @@ class KeywordSelector(SelectorStrategy):
                 include_hits=include_hits,
                 exclude_hits=exclude_hits,
                 phase_name=phase_name,
+                extra_rois=extra_rois,
             )
 
         return SelectionDecision(
@@ -126,4 +143,5 @@ class KeywordSelector(SelectorStrategy):
             include_hits=include_hits,
             exclude_hits=exclude_hits,
             phase_name=phase_name,
+            extra_rois=extra_rois,
         )

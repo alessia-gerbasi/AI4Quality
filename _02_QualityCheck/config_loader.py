@@ -32,6 +32,28 @@ def resolve_effective_phase(phase_name: str | None, ct_type: str | None) -> str:
     return phase
 
 
+def load_keyword_overrides(yaml_path: Path) -> dict[str, str]:
+    """Return {keyword: override_procedure_code}, e.g. {'embolia': 'TACACP'}."""
+    with open(yaml_path) as fh:
+        raw: dict[str, Any] = yaml.safe_load(fh) or {}
+
+    overrides: dict[str, str] = {}
+    for keyword, entry in (raw.get("keyword_overrides") or {}).items():
+        code = (entry or {}).get("override_procedure_code")
+        if keyword and code:
+            overrides[str(keyword).strip().lower()] = str(code).strip().upper()
+    return overrides
+
+
+def resolve_effective_procedure_code(procedure_code: str, series_text: str, overrides: dict[str, str]) -> str:
+    """Return the procedure code to use for rule lookup, applying keyword overrides."""
+    text = (series_text or "").strip().lower()
+    for keyword, override_code in overrides.items():
+        if keyword in text:
+            return override_code
+    return procedure_code
+
+
 def load_rules(yaml_path: Path) -> dict[str, ProcedureRule]:
     with open(yaml_path) as fh:
         raw: dict[str, dict[str, Any]] = yaml.safe_load(fh) or {}

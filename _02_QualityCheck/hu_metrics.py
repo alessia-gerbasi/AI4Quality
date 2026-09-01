@@ -23,6 +23,28 @@ def measure_roi_statistics(ct_volume: np.ndarray, roi_mask: np.ndarray) -> tuple
     return mean_hu, std_hu, median_hu, n_vox
 
 
+def measure_roi_edge_means(
+    ct_volume: np.ndarray,
+    roi_mask: np.ndarray,
+    n_slices: int = 5,
+) -> tuple[float | None, float | None]:
+    if n_slices < 1:
+        raise ValueError("n_slices must be at least 1")
+
+    mask = roi_mask > 0
+    populated_slices = np.flatnonzero(mask.any(axis=(0, 1)))
+    if populated_slices.size == 0:
+        return None, None
+
+    proximal_slices = populated_slices[:n_slices]
+    distal_slices = populated_slices[-n_slices:]
+    proximal_mask = mask[:, :, proximal_slices]
+    distal_mask = mask[:, :, distal_slices]
+    proximal_mean = float(ct_volume[:, :, proximal_slices][proximal_mask].mean())
+    distal_mean = float(ct_volume[:, :, distal_slices][distal_mask].mean())
+    return proximal_mean, distal_mean
+
+
 def select_slice_for_visualization(roi_mask: np.ndarray) -> int | None:
     mask = roi_mask > 0
     if not mask.any():

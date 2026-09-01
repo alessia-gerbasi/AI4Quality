@@ -59,6 +59,13 @@ class RoiMeasurement:
     median_std_hu_precontrast: float | None = None
     delta_hu: float | None = None
     delta_median_hu: float | None = None
+    proximal_mean_hu: float | None = None
+    distal_mean_hu: float | None = None
+    edge_slice_count: int | None = None
+    proximal_status: str | None = None
+    distal_status: str | None = None
+    attenuation_consistency: str | None = None
+    attenuation_message: str | None = None
 
 
 @dataclass
@@ -113,6 +120,13 @@ class SeriesEvaluation:
                     "median_std_hu_precontrast": m.median_std_hu_precontrast,
                     "delta_hu": m.delta_hu,
                     "delta_median_hu": m.delta_median_hu,
+                    "proximal_mean_hu": m.proximal_mean_hu,
+                    "distal_mean_hu": m.distal_mean_hu,
+                    "edge_slice_count": m.edge_slice_count,
+                    "proximal_status": m.proximal_status,
+                    "distal_status": m.distal_status,
+                    "attenuation_consistency": m.attenuation_consistency,
+                    "attenuation_message": m.attenuation_message,
                     "evaluated_value": score.value if score else None,
                     "voxel_count": m.voxel_count,
                     "slice_index": m.slice_index,

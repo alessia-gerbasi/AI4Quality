@@ -175,6 +175,7 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
     patient_warning_df = patient_warning_df.set_index(patient_warning_df.ct_id.astype(str)) if not patient_warning_df.empty else patient_warning_df
 
     timing_labels = {}
+    timing_issue_by_injection = {}
     timing_source = AGGREGATED_OUT if AGGREGATED_OUT.exists() else DEFAULT_OUT
     if timing_source.exists():
         timing_results = pd.read_csv(timing_source)
@@ -184,15 +185,34 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
             for item in timing_results.itertuples()
             if pd.notna(item.rca_label)
         }
+        for item in timing_results.itertuples():
+            label = str(getattr(item, 'rca_label', '')).strip().lower()
+            if label not in {'early', 'late'}:
+                continue
+            key = (str(item.ct_id), str(getattr(item, 'injection_index', '')))
+            timing_issue_by_injection.setdefault(key, {
+                'label': label,
+                'series_folder': getattr(item, 'series_folder', ''),
+            })
 
-    # Filter to critical series only (unique per series, not per ROI)
-    critical = merged[merged['status'].isin(statuses)].copy()
+    # Filter to QC issue series only (unique per series, not per ROI).
+    incoherent = (
+        merged['attenuation_consistency'].fillna('').eq('incoherent')
+        if 'attenuation_consistency' in merged.columns
+        else pd.Series(False, index=merged.index)
+    )
+    critical = merged[merged['status'].isin(statuses) | incoherent].copy()
     series_keys = ['ct_id', 'ct_folder', 'series_folder', 'phase_name',
                    'procedure_code', 'injection_index']
     critical_series = (
         critical.groupby([k for k in series_keys if k in critical.columns])
         .agg(
-            worst_status=('status', lambda x: 'critical_high' if 'critical_high' in x.values else 'critical_low'),
+            worst_status=(
+                'status',
+                lambda x: 'critical_high' if 'critical_high' in x.values else (
+                    'critical_low' if 'critical_low' in x.values else 'incoherent_attenuation'
+                ),
+            ),
             affected_rois=('roi_name', lambda x: ', '.join(x.dropna().unique())),
             n_critical_rois=('status', 'count'),
             series_warnings=('series_warnings', 'first'),
@@ -200,7 +220,7 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
         .reset_index()
     )
 
-    print(f"Found {len(critical_series)} critical series to analyse.")
+    print(f"Found {len(critical_series)} QC issue series to analyse.")
 
     evaluator = RuleEvaluator(str(schema_path), str(THRESHOLD_CFG))
     rows = []
@@ -228,6 +248,10 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
         timing_label = timing_labels.get((str(row.get('ct_id')), str(row.get('series_folder'))))
         if timing_label:
             patient_data['rca_label'] = timing_label
+        timing_issue = timing_issue_by_injection.get((str(row.get('ct_id')), str(injection_index)))
+        if timing_issue:
+            patient_data['_timing_issue_label'] = timing_issue['label']
+            patient_data['_timing_issue_series_folder'] = timing_issue['series_folder']
 
         result = evaluator.evaluate(patient_data)
 
