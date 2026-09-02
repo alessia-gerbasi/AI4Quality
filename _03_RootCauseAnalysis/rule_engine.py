@@ -437,6 +437,11 @@ class RuleEvaluator:
         return int(numeric) if numeric.is_integer() else numeric
 
     def _extract_contrast_duration_seconds(self, phase_details: List[Dict[str, Any]], patient_data: Dict[str, Any]) -> Any:
+        flow_rate_windows = self._extract_flow_rate_phase_windows(patient_data.get('Actual Flow-Rate Data Points'))
+        duration = self._extract_duration_from_flow_rate_bounds(flow_rate_windows)
+        if duration is not None:
+            return duration
+
         duration = self._extract_duration_from_phase_bounds(phase_details)
         if duration is not None:
             return duration
@@ -453,6 +458,39 @@ class RuleEvaluator:
         if contrast_volume is not None and flow_rate not in (None, 0):
             return contrast_volume / flow_rate
         return None
+
+    def _extract_flow_rate_phase_windows(self, value: Any) -> List[Dict[str, Any]]:
+        """Parse '[ StartSecond: X; PhaseType: Y; [Time, Value]: ...;  ]' blocks.
+
+        Unlike 'Actual Phase Details', this column carries each phase's actual start time,
+        so contrast duration = next phase's StartSecond - contrast phase's StartSecond.
+        """
+        if self._is_missing_value(value):
+            return []
+        text = str(value)
+        return [
+            {'StartSecond': float(start), 'PhaseType': phase_type}
+            for start, phase_type in re.findall(
+                r'StartSecond\s*:\s*([-+]?\d+(?:\.\d+)?)\s*;\s*PhaseType\s*:\s*([A-Za-z0-9]+)',
+                text,
+                flags=re.IGNORECASE,
+            )
+        ]
+
+    def _extract_duration_from_flow_rate_bounds(self, windows: List[Dict[str, Any]]) -> Any:
+        if not windows:
+            return None
+        ordered = sorted(windows, key=lambda w: w['StartSecond'])
+        total_duration = 0.0
+        found = False
+        for index, window in enumerate(ordered):
+            if not self._is_contrast_phase(window) or index + 1 >= len(ordered):
+                continue
+            duration = ordered[index + 1]['StartSecond'] - window['StartSecond']
+            if duration >= 0:
+                total_duration += duration
+                found = True
+        return total_duration if found else None
 
     def _extract_duration_from_phase_bounds(self, phase_details: List[Dict[str, Any]]) -> Any:
         for entry in phase_details:

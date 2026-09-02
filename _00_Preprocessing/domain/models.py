@@ -21,6 +21,8 @@ class SeriesRecord:
     body_part_examined: str | None
     acquisition_time: str | None
     contrast_bolus_start: str | None
+    kvp: str | None
+    scan_duration_s: float | None
     series_description: str | None
     series_instance_uid: str | None
     instance_count: int

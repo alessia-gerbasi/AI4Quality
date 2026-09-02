@@ -31,6 +31,8 @@ FINDING_LABELS = {
     "flow_rate_low": "Flow rate low",
     "pressure_high": "Pressure high",
     "protocol_execution_error": "Executed protocol differs from programmed",
+    "injection_duration_low": "Injection duration short relative to scan duration",
+    "injection_duration_high": "Injection duration long relative to scan duration",
 }
 
 

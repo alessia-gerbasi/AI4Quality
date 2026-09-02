@@ -118,6 +118,8 @@ def main() -> int:
             "body_part_examined": item.base.body_part_examined,
             "acquisition_time": item.base.acquisition_time,
             "contrast_bolus_start": item.base.contrast_bolus_start,
+            "kvp": item.base.kvp,
+            "scan_duration_s": item.base.scan_duration_s,
             "status": dec.status,
             "reason_code": dec.reason_code,
             "reason_detail": dec.reason_detail,

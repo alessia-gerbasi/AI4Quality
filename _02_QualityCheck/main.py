@@ -281,8 +281,7 @@ def _evaluate_series(
         if score.warning:
             warnings.append(f"{m.roi_name}: {score.warning}")
         if ct_type.strip().lower() == "vascular" and m.proximal_mean_hu is not None and m.distal_mean_hu is not None:
-            if _classify_vascular_attenuation(m, phase_rule.hu_threshold):
-                warnings.append(m.attenuation_message)
+            _classify_vascular_attenuation(m, phase_rule.hu_threshold)
 
     if phase == "venosa":
         liver = next((m for m in measurements if m.roi_name == "liver"), None)

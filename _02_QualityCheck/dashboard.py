@@ -77,6 +77,22 @@ def _load_ct_type_lookup() -> pd.DataFrame:
     return lookup
 
 
+def _load_scanner_lookup() -> pd.DataFrame:
+    if not PREPROCESSING_CSV_PATH.exists():
+        return pd.DataFrame(columns=["ct_id", "series_folder", "scanner"])
+
+    df = pd.read_csv(PREPROCESSING_CSV_PATH)
+    columns = ["ct_id", "series_folder", "scanner"]
+    missing = [column for column in columns if column not in df.columns]
+    if missing:
+        return pd.DataFrame(columns=columns)
+
+    lookup = df[columns].copy()
+    lookup["scanner"] = lookup["scanner"].fillna("").astype(str)
+    lookup = lookup.drop_duplicates(subset=["ct_id", "series_folder"], keep="first")
+    return lookup
+
+
 def _load_procedure_description_lookup() -> dict[str, str]:
     if not PROTOCOLS_CONFIG_PATH.exists():
         return {}
@@ -212,6 +228,28 @@ def _ensure_ct_type_columns(detail_df: pd.DataFrame, series_df: pd.DataFrame) ->
     return detail_df, series_df
 
 
+def _ensure_scanner_column(detail_df: pd.DataFrame, series_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    lookup = _load_scanner_lookup()
+    detail_df = detail_df.copy()
+    series_df = series_df.copy()
+
+    if lookup.empty:
+        if "scanner" not in detail_df.columns:
+            detail_df["scanner"] = ""
+        if "scanner" not in series_df.columns:
+            series_df["scanner"] = ""
+        return detail_df, series_df
+
+    if "scanner" not in detail_df.columns:
+        detail_df = detail_df.merge(lookup, on=["ct_id", "series_folder"], how="left")
+    if "scanner" not in series_df.columns:
+        series_df = series_df.merge(lookup, on=["ct_id", "series_folder"], how="left")
+
+    detail_df["scanner"] = detail_df["scanner"].fillna("").astype(str)
+    series_df["scanner"] = series_df["scanner"].fillna("").astype(str)
+    return detail_df, series_df
+
+
 @st.cache_data(show_spinner=False)
 def load_results(output_dir_str: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     output_dir = _resolve_path(output_dir_str)
@@ -229,6 +267,7 @@ def load_results(output_dir_str: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Da
     detail_df = pd.read_csv(detail_path)
     series_df = pd.read_csv(series_path)
     detail_df, series_df = _ensure_ct_type_columns(detail_df, series_df)
+    detail_df, series_df = _ensure_scanner_column(detail_df, series_df)
     detail_df, series_df = _ensure_procedure_description_columns(detail_df, series_df)
     series_df = _build_phase_prediction_columns(series_df)
 
@@ -415,12 +454,14 @@ def main() -> None:
     phases = sorted(detail_df["phase_name"].dropna().astype(str).unique().tolist())
     statuses = sorted(detail_df["status"].dropna().astype(str).unique().tolist())
     metrics = sorted(detail_df["metric_name"].dropna().astype(str).unique().tolist())
+    scanners = sorted(detail_df["scanner"].dropna().astype(str).unique().tolist())
 
     selected_ct_types = st.sidebar.multiselect("CT Type", ct_types, default=ct_types)
     selected_procedures = st.sidebar.multiselect("Procedure code", procedures, default=procedures)
     selected_phases = st.sidebar.multiselect("Phase", phases, default=phases)
     selected_statuses = st.sidebar.multiselect("Status", statuses, default=statuses)
     selected_metrics = st.sidebar.multiselect("Metric", metrics, default=metrics)
+    selected_scanners = st.sidebar.multiselect("Scanner", scanners, default=scanners)
     warning_priority_labels = {
         "none": "No warning",
         "low": "Low priority warning",
@@ -445,6 +486,7 @@ def main() -> None:
         & detail_df["phase_name"].isin(selected_phases)
         & detail_df["status"].isin(selected_statuses)
         & detail_df["metric_name"].isin(selected_metrics)
+        & detail_df["scanner"].isin(selected_scanners)
     ].copy()
 
     if "warning_priority" in patient_df.columns:

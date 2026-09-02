@@ -15,6 +15,17 @@ PARALLEL_REFERENCE_GROUPS = (
 )
 
 
+def _direction_phrase(statuses: Iterable[str]) -> str:
+    statuses = set(statuses)
+    has_low = "critical_low" in statuses
+    has_high = "critical_high" in statuses
+    if has_low and not has_high:
+        return "insufficient"
+    if has_high and not has_low:
+        return "excessive"
+    return "insufficient or excessive"
+
+
 def _patient_warning(detail_df: pd.DataFrame, patient_id: object) -> tuple[str, str, str]:
     rows = detail_df[detail_df["ct_id"].eq(patient_id)].copy()
     if rows.empty:
@@ -31,7 +42,8 @@ def _patient_warning(detail_df: pd.DataFrame, patient_id: object) -> tuple[str, 
             f"{row.roi_name} {row.status} in {row.series_folder}"
             for row in venous_reference.itertuples()
         )
-        return "high", "Reference-organ enhancement in the venous phase is insufficient or excessive.", evidence
+        direction = _direction_phrase(venous_reference["status"])
+        return "high", f"Reference-organ enhancement in the venous phase is {direction}.", evidence
 
     for group in PARALLEL_REFERENCE_GROUPS:
         paired = rows[rows["roi_name"].isin(group)]
@@ -62,7 +74,8 @@ def _patient_warning(detail_df: pd.DataFrame, patient_id: object) -> tuple[str, 
             f"{row.roi_name} {row.status} in {row.series_folder}"
             for row in critical.itertuples()
         )
-        return "high", "Reference-organ enhancement is insufficient or excessive.", evidence
+        direction = _direction_phrase(critical["status"])
+        return "high", f"Reference-organ enhancement is {direction}.", evidence
 
     return "none", "", ""
 

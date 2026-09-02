@@ -118,6 +118,8 @@ def build_patient_context(patient_data: dict, series_df: pd.DataFrame,
     if current_row is not None:
         context['_current_acquisition_time'] = current_row.get('acquisition_time')
         context['_current_contrast_bolus_start'] = current_row.get('contrast_bolus_start')
+        context['_current_kvp'] = current_row.get('kvp')
+        context['_current_scan_duration_s'] = current_row.get('scan_duration_s')
 
     arterial = ct_series[
         ct_series['phase_name'].fillna('').astype(str).str.strip().str.lower() == 'arteriosa'

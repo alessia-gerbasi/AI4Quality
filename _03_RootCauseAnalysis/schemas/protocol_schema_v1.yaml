@@ -14,8 +14,9 @@ variables:
     calculation: "@{Actual Total Contrast Volume Injected (mL)}"
   flow_rate_ml_s:
     calculation: "@_contrast_flow_rate_from_data_points"
+  # Contrast-only duration (excludes saline chase), derived from Actual Phase Details / volume-rate fallback -- NOT Actual Total Duration (s), which includes saline.
   injection_duration_s:
-    calculation: "@{Actual Total Duration (s)}"
+    calculation: "@_contrast_duration_seconds"
   idr_result_g_s:
     calculation: "@contrast_dose_g / @injection_duration_s if @injection_duration_s not in (None, 0) and @contrast_dose_g != None else None"
   patient_weight_kg:
@@ -36,22 +37,47 @@ variables:
   dose_max_g:
     calculation: "@dose_max_per_kg * @patient_weight_kg if @patient_weight_kg != None else None"
 
-  idr_min_g_s:
+  idr_min_g_s_base:
     source: roi_hu_timing_table
     field: IDR
     index: 0
-  idr_max_g_s:
+  idr_max_g_s_base:
     source: roi_hu_timing_table
     field: IDR
     index: 1
-  idr_min_tolerated_g_s:
+  idr_min_tolerated_g_s_base:
     source: roi_hu_timing_table
     field: IDR
     index: 2
-  idr_max_tolerated_g_s:
+  idr_max_tolerated_g_s_base:
     source: roi_hu_timing_table
     field: IDR
     index: 3
+  kvp_value:
+    calculation: "@{_current_kvp}"
+  kvp_value_num:
+    calculation: "float(@kvp_value) if @kvp_value not in (None, '') and str(@kvp_value).strip().lower() != 'nan' else None"
+  # kVp-based IDR adjustment relative to the 120 kV reference: 140 kV = +10%, 100 kV = -10%, 80 kV = -20%.
+  idr_kvp_adjustment_factor:
+    calculation: "1.10 if @kvp_value_num == 140 else (0.90 if @kvp_value_num == 100 else (0.80 if @kvp_value_num == 80 else 1.0))"
+  idr_min_g_s:
+    calculation: "@idr_min_g_s_base * @idr_kvp_adjustment_factor if @idr_min_g_s_base != None else None"
+  idr_max_g_s:
+    calculation: "@idr_max_g_s_base * @idr_kvp_adjustment_factor if @idr_max_g_s_base != None else None"
+  idr_min_tolerated_g_s:
+    calculation: "@idr_min_tolerated_g_s_base * @idr_kvp_adjustment_factor if @idr_min_tolerated_g_s_base != None else None"
+  idr_max_tolerated_g_s:
+    calculation: "@idr_max_tolerated_g_s_base * @idr_kvp_adjustment_factor if @idr_max_tolerated_g_s_base != None else None"
+  scan_duration_s:
+    calculation: "@{_current_scan_duration_s}"
+  scan_duration_s_num:
+    calculation: "float(@scan_duration_s) if @scan_duration_s not in (None, '') and str(@scan_duration_s).strip().lower() != 'nan' else None"
+  injection_duration_min_s:
+    calculation: "@scan_duration_s_num + 5 if @scan_duration_s_num != None else None"
+  injection_duration_max_s:
+    calculation: "@scan_duration_s_num + 10 if @scan_duration_s_num != None else None"
+  has_injection_duration_check:
+    calculation: "@injection_duration_s not in (None, 0) and @injection_duration_min_s != None and @injection_duration_max_s != None"
 
   contrast_load_min_ml:
     calculation: "@dose_min_g * 1000 / @contrast_concentration_mg_ml if @dose_min_g != None and @contrast_concentration_mg_ml not in (None, 0) else None"
@@ -78,7 +104,7 @@ variables:
   has_protocol_inputs:
     calculation: "all(value != None for value in [@{Programmed Total Contrast Volume (mL)}, @{Programmed Total Contrast Dose (gI)}, @{Programmed Total Saline Volume (mL)}, @{Actual Total Contrast Volume Injected (mL)}, @{Actual Total Contrast Dose (gI)}, @{Actual Total Saline Volume Injected (mL)}])"
   protocol_missing_details:
-    calculation: "'Contrast media load: Patient Weight is missing, so range [K-L] cannot be calculated.' if @patient_weight_kg == None else ('Contrast media load: Contrast Concentration is missing or zero, so range [K-L] cannot be calculated.' if @contrast_concentration_mg_ml in (None, 0) else ('Contrast media load: Actual Total Contrast Volume Injected (mL) is missing.' if @contrast_volume_ml == None else ('IDR: Actual Total Duration (s), Actual Total Contrast Dose (gI), or the configured procedure IDR range is missing.' if not @has_idr or @idr_min_tolerated_g_s == None or @idr_max_tolerated_g_s == None else ('Flow rate: no contrast-phase samples were found in Actual Flow-Rate Data Points.' if not @has_flow_inputs else ('Protocol execution: one or more programmed or actual dose/volume values are missing.' if not @has_protocol_inputs else 'No protocol inputs are missing.')))))"
+    calculation: "'Contrast media load: Patient Weight is missing, so range [K-L] cannot be calculated.' if @patient_weight_kg == None else ('Contrast media load: Contrast Concentration is missing or zero, so range [K-L] cannot be calculated.' if @contrast_concentration_mg_ml in (None, 0) else ('Contrast media load: Actual Total Contrast Volume Injected (mL) is missing.' if @contrast_volume_ml == None else ('IDR: contrast-only injection duration (from Actual Phase Details), Actual Total Contrast Dose (gI), or the configured procedure IDR range is missing.' if not @has_idr or @idr_min_tolerated_g_s == None or @idr_max_tolerated_g_s == None else ('Flow rate: no contrast-phase samples were found in Actual Flow-Rate Data Points.' if not @has_flow_inputs else ('Protocol execution: one or more programmed or actual dose/volume values are missing.' if not @has_protocol_inputs else 'No protocol inputs are missing.')))))"
 
 independent_checks:
   - name: pressure
@@ -127,6 +153,14 @@ independent_checks:
     condition: "@protocol_matches"
     outcome: outcome_execution_error
     missing_outcome: outcome_missing_data
+  - name: injection_duration_vs_scan
+    question: "Is contrast injection duration within [S-T] = [scan duration + 5s, scan duration + 10s]?"
+    available_condition: "@has_injection_duration_check"
+    condition: "@injection_duration_s >= @injection_duration_min_s and @injection_duration_s <= @injection_duration_max_s"
+    low_outcome: outcome_injection_duration_low
+    high_outcome: outcome_injection_duration_high
+    high_condition: "@injection_duration_s > @injection_duration_max_s"
+    missing_outcome: outcome_injection_duration_missing
 
 decisions:
   root:
@@ -190,7 +224,7 @@ outcomes:
     label: "protocol_ok"
     card:
       title: "Protocol parameters within range"
-      explanation: "Pressure: @pressure_psi psi. Contrast load: @contrast_volume_ml ml [@contrast_load_min_ml, @contrast_load_max_ml] ml. Saline: @saline_volume_ml ml. IDR: @contrast_dose_g / @injection_duration_s gI/s [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s]. Flow: @flow_rate_ml_s ml/s [@flow_min_ml_s, @flow_max_ml_s] ml/s. Programmed protocol values match actual values."
+      explanation: "Pressure: @pressure_psi psi. Contrast load: @contrast_volume_ml ml [@contrast_load_min_ml, @contrast_load_max_ml] ml. Saline: @saline_volume_ml ml. IDR: @contrast_dose_g / @injection_duration_s gI/s [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] (kVp: @kvp_value_num, adjustment factor: @idr_kvp_adjustment_factor). Flow: @flow_rate_ml_s ml/s [@flow_min_ml_s, @flow_max_ml_s] ml/s. Programmed protocol values match actual values."
       impact: "No protocol-parameter deviation was identified."
       recommendations: []
   outcome_pressure_high:
@@ -232,14 +266,14 @@ outcomes:
     label: "idr_low"
     card:
       title: "IDR low"
-      explanation: "Measured IDR: @idr_result_g_s gI/s, calculated as @contrast_dose_g gI / @injection_duration_s s. Expected range: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s."
+      explanation: "Measured IDR: @idr_result_g_s gI/s, calculated as @contrast_dose_g gI / @injection_duration_s s. Expected range: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s (kVp: @kvp_value_num, adjustment factor: @idr_kvp_adjustment_factor applied to base range [@idr_min_tolerated_g_s_base, @idr_max_tolerated_g_s_base] gI/s)."
       impact: "The iodine delivery rate is below the protocol range."
       recommendations: ["Review contrast dose and injection duration for the selected procedure."]
   outcome_idr_high:
     label: "idr_high"
     card:
       title: "IDR high"
-      explanation: "Measured IDR: @idr_result_g_s gI/s, calculated as @contrast_dose_g gI / @injection_duration_s s. Expected range: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s."
+      explanation: "Measured IDR: @idr_result_g_s gI/s, calculated as @contrast_dose_g gI / @injection_duration_s s. Expected range: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s (kVp: @kvp_value_num, adjustment factor: @idr_kvp_adjustment_factor applied to base range [@idr_min_tolerated_g_s_base, @idr_max_tolerated_g_s_base] gI/s)."
       impact: "The iodine delivery rate is above the protocol range."
       recommendations: ["Review contrast dose and injection duration for the selected procedure."]
   outcome_flow_low:
@@ -281,7 +315,7 @@ outcomes:
     label: "idr_error"
     card:
       title: "Error: IDR was too high or low"
-      explanation: "Measured IDR: @contrast_dose_g / @injection_duration_s gI/s. Expected range for the procedure: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s."
+      explanation: "Measured IDR: @contrast_dose_g / @injection_duration_s gI/s. Expected range for the procedure: [@idr_min_tolerated_g_s, @idr_max_tolerated_g_s] gI/s (kVp: @kvp_value_num, adjustment factor: @idr_kvp_adjustment_factor applied to base range [@idr_min_tolerated_g_s_base, @idr_max_tolerated_g_s_base] gI/s)."
       impact: "The iodine delivery rate may reduce enhancement or exceed the protocol target."
       recommendations: ["Review contrast dose and injection duration for the selected procedure."]
   outcome_flow_error:
@@ -312,3 +346,24 @@ outcomes:
       explanation: "@protocol_missing_details"
       impact: "No reliable protocol deviation can be assigned."
       recommendations: ["Review the injection history and injector metadata for missing pressure, volume, dose, duration, concentration, or program values."]
+  outcome_injection_duration_low:
+    label: "injection_duration_low"
+    card:
+      title: "Injection duration short relative to scan duration"
+      explanation: "Measured contrast injection duration: @injection_duration_s s. Scan duration: @scan_duration_s_num s. Expected range [S-T]: [@injection_duration_min_s, @injection_duration_max_s] s."
+      impact: "The contrast injection may end well before scan acquisition completes, risking reduced enhancement in later-acquired anatomy."
+      recommendations: ["Review the injection duration relative to the scan duration and adjust flow rate or contrast volume accordingly."]
+  outcome_injection_duration_high:
+    label: "injection_duration_high"
+    card:
+      title: "Injection duration long relative to scan duration"
+      explanation: "Measured contrast injection duration: @injection_duration_s s. Scan duration: @scan_duration_s_num s. Expected range [S-T]: [@injection_duration_min_s, @injection_duration_max_s] s."
+      impact: "The contrast injection extends well beyond scan acquisition, which may indicate an oversized bolus or a slow flow rate."
+      recommendations: ["Review the injection duration relative to the scan duration and adjust flow rate or contrast volume accordingly."]
+  outcome_injection_duration_missing:
+    label: "injection_duration_data_missing"
+    card:
+      title: "Injection duration vs scan not evaluable"
+      explanation: "Scan duration: @scan_duration_s_num s. Contrast-only injection duration: @injection_duration_s s. One or both values could not be determined, so the [S-T] comparison could not be made."
+      impact: "No reliable comparison between contrast injection duration and scan duration can be made for this series."
+      recommendations: ["Verify DICOM AcquisitionTime metadata (used to estimate scan duration) and Actual Phase Details / flow-rate data points (used to estimate contrast-only injection duration)."]
