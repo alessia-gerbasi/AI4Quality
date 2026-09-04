@@ -26,20 +26,15 @@ To test one patient first:
 /data/alessia.gerbasi/miniconda3/envs/ctq/bin/python _04_Recommendations/generate_recommendations.py --ct-id 472
 ```
 
-The command rebuilds the source SQLite tables, calls Ollama, and stores one current exam recommendation per patient. It fails rather than storing a fallback if Ollama is unavailable.
+The command rebuilds the source SQLite tables, calls vLLM, and stores one current exam recommendation per patient. It fails rather than storing a fallback if the model cannot be loaded or generated.
 
 Patient-level enhancement warnings are calculated during quality checking and stored in `patient_hu_qc_summary.csv` and the SQLite `patient_warnings` table. Re-run quality checking, RCA batches, and then **Refresh database** to propagate updated warning priorities through the pipeline.
 
 ## Local LLM
 
-The adapter uses Ollama's local HTTP API and defaults to `qwen2.5:7b`. This is the recommended interactive model for this project: it is already installed, fast enough for case review, and produces clear concise summaries. `qwen3:32b` is a stronger but slower option for offline batch generation if more GPU/RAM is available:
+The adapter uses vLLM and defaults to `google/gemma-3-27b-it`. It exposes only the fourth physical GPU with `CUDA_VISIBLE_DEVICES=3` before importing vLLM; inside the process this device is therefore visible as `cuda:0`.
 
-```bash
-ollama pull qwen2.5:7b
-ollama serve
-```
-
-Set `AI4QUALITY_LLM_MODEL` to another installed Ollama model. Ollama must be running when a recommendation is generated; the dashboard reports a clear error if the model is unavailable and does not create a fallback recommendation.
+Set `AI4QUALITY_LLM_MODEL` or pass `--model` to use another Hugging Face model supported by vLLM. The model is loaded lazily on the first recommendation request and remains cached for subsequent requests.
 
 The prompt intentionally requests two short paragraphs and at most three concrete protocol actions, so recommendations remain readable rather than becoming a long report.
 

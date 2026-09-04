@@ -4,6 +4,11 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
+def public_ct_folder(ct_id: int | str) -> str:
+    """Return the public CT identifier used in exports and dashboards."""
+    return f"CT_QUALITY_{ct_id}"
+
+
 @dataclass(frozen=True)
 class ThresholdBand:
     min_opt: float
@@ -101,8 +106,8 @@ class SeriesEvaluation:
             rows.append(
                 {
                     "ct_id": self.ct_id,
-                    "ct_name": self.ct_name,
-                    "ct_folder": self.ct_folder,
+                    "ct_name": str(self.ct_id),
+                    "ct_folder": public_ct_folder(self.ct_id),
                     "CT_type": self.ct_type,
                     "procedure_code": self.procedure_code,
                     "phase_name": self.phase_name,
@@ -150,8 +155,8 @@ class SeriesEvaluation:
 
         return {
             "ct_id": self.ct_id,
-            "ct_name": self.ct_name,
-            "ct_folder": self.ct_folder,
+            "ct_name": str(self.ct_id),
+            "ct_folder": public_ct_folder(self.ct_id),
             "CT_type": self.ct_type,
             "procedure_code": self.procedure_code,
             "phase_name": self.phase_name,

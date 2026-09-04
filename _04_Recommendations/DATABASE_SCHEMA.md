@@ -10,10 +10,9 @@ The database is rebuilt by `build_database.py` from the current QC CSV, RCA aggr
 One row per linked patient exam.
 
 - `ct_id`: anonymized patient/exam identifier; primary key.
-- `ct_folder`: source CT folder derived from `ct_id`.
-- `patient_name`: anonymized patient name from injection history.
+- `ct_folder`: public CT folder derived only from numeric `ct_id`.
 - `injection_index`: linked injection-history identifier.
-- `patient_data_json`: complete linked injection-history row for audit/detail fields.
+- `patient_data_json`: linked injection-history row for audit/detail fields, with patient name fields removed.
 
 Unmatched injection-history rows are excluded. They are not exams in this database, which prevents meaningless `NULL ct_id` rows.
 
@@ -70,16 +69,16 @@ One row per linked injection-history record.
 Unmatched injection-history records are excluded because they cannot be associated with an anonymized patient.
 
 ### `recommendations`
-One current generated recommendation per `(ct_id, scope, model)`.
+One current generated recommendation per `(ct_id, scope, series_folder)`.
 
 - `ct_id`, `series_folder`, `scope`: patient and recommendation scope. Current automated generation uses `scope = 'exam'` and `series_folder = NULL`.
-- `model`: Ollama model name.
+- `model`: model name.
 - `source`: LLM source label, for example `llm (qwen2.5:7b)`.
 - `recommendation`: generated text.
 - `input_json`: exact patient input sent to the LLM.
 - `created_at`: generation timestamp.
 
-The unique index prevents repeated dashboard clicks or batch runs from creating duplicate current rows for the same patient/model/scope.
+The unique index keeps only the latest current row for the same patient/scope/series. Re-running the background generator with a new model replaces older model rows for that CT instead of accumulating historical rows.
 
 ## Useful test queries
 

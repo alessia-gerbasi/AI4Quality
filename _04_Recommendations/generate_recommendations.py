@@ -20,6 +20,7 @@ def _normalise_notes(values: pd.Series) -> list[str]:
 
 
 FINDING_LABELS = {
+    "missing weight": "Patient weight missing for optimal dose computation",
     "contrast_load_input_missing": "Patient weight missing for contrast-load range",
     "saline_volume_high": "Saline volume high",
     "saline_volume_low": "Saline volume low",
@@ -104,8 +105,8 @@ def generate_all(ct_id: str | None = None, model: str = DEFAULT_MODEL) -> int:
             source, findings, exam_findings = _patient_inputs(data, patient_id)
             text, source_name = generate_recommendation(source, findings, exam_findings, model=model)
             db.execute(
-                "DELETE FROM recommendations WHERE ct_id = ? AND scope = 'exam' AND model = ?",
-                (patient_id, model),
+                "DELETE FROM recommendations WHERE ct_id = ? AND scope = 'exam' AND series_folder IS NULL",
+                (patient_id,),
             )
             db.execute(
                 "INSERT INTO recommendations VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
@@ -120,7 +121,7 @@ def generate_all(ct_id: str | None = None, model: str = DEFAULT_MODEL) -> int:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate all AI4Quality LLM recommendations without Streamlit")
     parser.add_argument("--ct-id", help="Generate only this patient (default: all QC/RCA patients)")
-    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"Ollama model (default: {DEFAULT_MODEL})")
+    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"vLLM model (default: {DEFAULT_MODEL})")
     args = parser.parse_args()
     print(f"Generated {generate_all(args.ct_id, args.model)} recommendation(s) in {DB_PATH}")
 

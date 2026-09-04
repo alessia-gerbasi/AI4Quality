@@ -23,7 +23,47 @@ def _direction_phrase(statuses: Iterable[str]) -> str:
         return "insufficient"
     if has_high and not has_low:
         return "excessive"
-    return "insufficient or excessive"
+    return "mixed, with both insufficient and excessive measurements"
+
+
+def _enhancement_warning_text(rows: pd.DataFrame, phase_label: str | None = None) -> str:
+    direction = _direction_phrase(rows["status"])
+    affected = ", ".join(sorted({str(value) for value in rows["roi_name"].dropna()}))
+    phase_text = f" in the {phase_label} phase" if phase_label else ""
+    return f"Reference-organ enhancement{phase_text} is {direction}: {affected}."
+
+
+def _venous_liver_spleen_partial_warning(rows: pd.DataFrame) -> tuple[str, str, str] | None:
+    venous_rows = rows[
+        rows["phase_name"].fillna("").astype(str).str.lower().eq("venosa")
+        & rows["roi_name"].isin({"liver", "spleen"})
+    ]
+    if venous_rows.empty:
+        return None
+
+    latest_by_roi = venous_rows.sort_values("series_folder").drop_duplicates("roi_name", keep="last")
+    statuses = {str(row.roi_name): str(row.status) for row in latest_by_roi.itertuples()}
+    if not {"liver", "spleen"}.issubset(statuses):
+        return None
+
+    liver_is_critical = statuses["liver"] in CRITICAL_STATUSES
+    spleen_is_critical = statuses["spleen"] in CRITICAL_STATUSES
+    if liver_is_critical == spleen_is_critical:
+        return None
+
+    critical_roi = "liver" if liver_is_critical else "spleen"
+    acceptable_roi = "spleen" if liver_is_critical else "liver"
+    critical_status = statuses[critical_roi]
+    direction = _direction_phrase({critical_status})
+    evidence = "; ".join(
+        f"{row.roi_name} {row.status} in {row.series_folder}"
+        for row in latest_by_roi.itertuples()
+    )
+    warning = (
+        f"Venous-phase {critical_roi} enhancement is {direction} while {acceptable_roi} remains acceptable; "
+        "review segmentation, patient factors, and focal pathology before changing protocol parameters."
+    )
+    return "medium", warning, evidence
 
 
 def _patient_warning(detail_df: pd.DataFrame, patient_id: object) -> tuple[str, str, str]:
@@ -32,6 +72,10 @@ def _patient_warning(detail_df: pd.DataFrame, patient_id: object) -> tuple[str, 
         return "none", "", ""
 
     reference_rows = rows[rows["roi_name"].isin(set().union(*PARALLEL_REFERENCE_GROUPS) | {"aorta"})]
+
+    partial_venous_warning = _venous_liver_spleen_partial_warning(rows)
+    if partial_venous_warning is not None:
+        return partial_venous_warning
 
     venous_reference = reference_rows[
         reference_rows["phase_name"].fillna("").astype(str).str.lower().eq("venosa")
@@ -42,8 +86,7 @@ def _patient_warning(detail_df: pd.DataFrame, patient_id: object) -> tuple[str, 
             f"{row.roi_name} {row.status} in {row.series_folder}"
             for row in venous_reference.itertuples()
         )
-        direction = _direction_phrase(venous_reference["status"])
-        return "high", f"Reference-organ enhancement in the venous phase is {direction}.", evidence
+        return "high", _enhancement_warning_text(venous_reference, "venous"), evidence
 
     for group in PARALLEL_REFERENCE_GROUPS:
         paired = rows[rows["roi_name"].isin(group)]
@@ -74,8 +117,7 @@ def _patient_warning(detail_df: pd.DataFrame, patient_id: object) -> tuple[str, 
             f"{row.roi_name} {row.status} in {row.series_folder}"
             for row in critical.itertuples()
         )
-        direction = _direction_phrase(critical["status"])
-        return "high", f"Reference-organ enhancement is {direction}.", evidence
+        return "high", _enhancement_warning_text(critical), evidence
 
     return "none", "", ""
 
@@ -129,7 +171,7 @@ def build_patient_summary_dataframe(detail_df: pd.DataFrame, series_summary_df: 
     missing_counts = detail_df.groupby("ct_id")["is_missing"].sum().rename("n_missing_rois")
 
     patient_df = (
-        series_summary_df.groupby(["ct_id", "ct_name"], as_index=False)
+        series_summary_df.groupby(["ct_id"], as_index=False)
         .agg(
             n_series=("series_folder", "count"),
             n_warning_series=("n_warnings", lambda s: int((s > 0).sum())),
@@ -226,7 +268,7 @@ def build_markdown_report(
         lines.append("")
         for _, row in patient_summary_df.sort_values("ct_id").iterrows():
             lines.append(
-                f"- CT {int(row['ct_id'])} ({row['ct_name']}): {int(row['n_series'])} series, "
+                f"- CT {int(row['ct_id'])}: {int(row['n_series'])} series, "
                 f"{int(row['n_warning_series'])} warning series, {int(row['n_critical_rois'])} critical ROIs"
             )
         lines.append("")

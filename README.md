@@ -7,6 +7,7 @@ Modular repository for CT quality workflows.
 - `_00_Preprocessing`: DICOM preprocessing pipeline for metadata extraction, selection, split-series reconstruction metadata, and export artifacts.
 - `_01_Segmentation`: DICOM-to-NIfTI conversion plus TotalSegmentator ROI extraction.
 - `_02_QualityCheck`: HU quality evaluation per ROI with configurable rules and visual outputs.
+- `_06_Dashboard`: Final clinical dashboard combining QC, RCA, warnings, injector data, and pre-generated LLM recommendations.
 - `_03_Reporting`: Reserved for reporting modules.
 
 ## Quick start
@@ -38,6 +39,13 @@ python _02_QualityCheck/main.py \
 
 ```bash
 streamlit run _02_QualityCheck/dashboard.py
+```
+
+6. Generate the final LLM recommendations in background, then launch the final clinical dashboard:
+
+```bash
+python _04_Recommendations/generate_recommendations.py
+streamlit run _06_Dashboard/dashboard.py
 ```
 
 Generated artifacts:

@@ -72,6 +72,7 @@ def _load_ct_type_lookup() -> pd.DataFrame:
         return pd.DataFrame(columns=columns)
 
     lookup = df[columns].copy()
+    lookup["ct_id"] = lookup["ct_id"].astype(str)
     lookup["CT_type"] = lookup["CT_type"].fillna("").astype(str)
     lookup = lookup.drop_duplicates(subset=["ct_id", "series_folder"], keep="first")
     return lookup
@@ -88,6 +89,7 @@ def _load_scanner_lookup() -> pd.DataFrame:
         return pd.DataFrame(columns=columns)
 
     lookup = df[columns].copy()
+    lookup["ct_id"] = lookup["ct_id"].astype(str)
     lookup["scanner"] = lookup["scanner"].fillna("").astype(str)
     lookup = lookup.drop_duplicates(subset=["ct_id", "series_folder"], keep="first")
     return lookup
@@ -134,6 +136,21 @@ def _ensure_procedure_description_columns(detail_df: pd.DataFrame, series_df: pd
     return detail_df, series_df
 
 
+def _public_ct_folder(ct_id: object) -> str:
+    return f"CT_QUALITY_{ct_id}"
+
+
+def _redact_patient_identifiers(dataframe: pd.DataFrame) -> pd.DataFrame:
+    dataframe = dataframe.copy()
+    if "ct_id" in dataframe.columns:
+        dataframe["ct_id"] = dataframe["ct_id"].astype(str)
+    if "ct_name" in dataframe.columns and "ct_id" in dataframe.columns:
+        dataframe["ct_name"] = dataframe["ct_id"].astype(str)
+    if "ct_folder" in dataframe.columns and "ct_id" in dataframe.columns:
+        dataframe["ct_folder"] = dataframe["ct_id"].map(_public_ct_folder)
+    return dataframe
+
+
 def _normalize_phase_name(phase_name: object) -> str:
     if pd.isna(phase_name):
         return ""
@@ -172,6 +189,32 @@ def _load_phase_prediction(series_dir_str: object) -> dict[str, object]:
     return data
 
 
+def _find_phase_prediction(ct_id: object, series_folder: object, series_dir: object) -> dict[str, object]:
+    """Load a phase prediction from the recorded path or the NIfTI output tree."""
+    prediction = _load_phase_prediction(series_dir)
+    if prediction:
+        return prediction
+
+    data_root = _REPO_ROOT.parent / "DATA"
+    ct_prefix = f"CT_QUALITY_{str(ct_id).strip()}_"
+    series_name = str(series_folder or "").strip().lower()
+    search_roots = [data_root / "CDI_NEXO_072026" / "2_nii", data_root]
+    for search_root in search_roots:
+        candidates = [
+            path for path in search_root.glob(f"{ct_prefix}*/**/phase.json")
+            if series_name and series_name in path.parent.name.lower()
+        ]
+        if not candidates:
+            continue
+        try:
+            with candidates[0].open("r", encoding="utf-8") as stream:
+                data = json.load(stream)
+        except (OSError, json.JSONDecodeError):
+            return {}
+        return data if isinstance(data, dict) else {}
+    return {}
+
+
 def _build_phase_prediction_columns(series_df: pd.DataFrame) -> pd.DataFrame:
     if series_df.empty:
         series_df = series_df.copy()
@@ -181,7 +224,14 @@ def _build_phase_prediction_columns(series_df: pd.DataFrame) -> pd.DataFrame:
         return series_df
 
     series_df = series_df.copy()
-    predictions = series_df.get("series_dir", pd.Series(index=series_df.index, dtype=object)).apply(_load_phase_prediction)
+    series_dirs = series_df.get("series_dir", pd.Series(index=series_df.index, dtype=object))
+    predictions = pd.Series(
+        [
+            _find_phase_prediction(row.get("ct_id"), row.get("series_folder"), series_dirs.loc[index])
+            for index, row in series_df.iterrows()
+        ],
+        index=series_df.index,
+    )
     series_df["predicted_phase"] = predictions.apply(lambda value: str(value.get("phase", "") or ""))
     series_df["predicted_phase_probability"] = pd.to_numeric(
         predictions.apply(lambda value: value.get("probability") if value else pd.NA),
@@ -266,6 +316,8 @@ def load_results(output_dir_str: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
     detail_df = pd.read_csv(detail_path)
     series_df = pd.read_csv(series_path)
+    detail_df = _redact_patient_identifiers(detail_df)
+    series_df = _redact_patient_identifiers(series_df)
     detail_df, series_df = _ensure_ct_type_columns(detail_df, series_df)
     detail_df, series_df = _ensure_scanner_column(detail_df, series_df)
     detail_df, series_df = _ensure_procedure_description_columns(detail_df, series_df)
@@ -283,6 +335,7 @@ def load_results(output_dir_str: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Da
 
     if patient_path.exists():
         patient_df = pd.read_csv(patient_path)
+        patient_df = _redact_patient_identifiers(patient_df)
     else:
         patient_df = build_patient_summary_dataframe(detail_df, series_df)
 
@@ -521,8 +574,8 @@ def main() -> None:
         st.warning("No patients match the current filters.")
         return
 
-    patient_options = filtered_patient.sort_values(["ct_id"])[["ct_id", "ct_name"]].drop_duplicates().to_dict("records")
-    option_labels = [f"CT {int(item['ct_id'])} | {item['ct_name']}" for item in patient_options]
+    patient_options = filtered_patient.sort_values(["ct_id"])[["ct_id"]].drop_duplicates().to_dict("records")
+    option_labels = [f"CT {item['ct_id']}" for item in patient_options]
 
     if "patient_idx" not in st.session_state:
         st.session_state.patient_idx = 0
@@ -537,12 +590,12 @@ def main() -> None:
         st.session_state.patient_idx += 1
 
     selected_patient = patient_options[st.session_state.patient_idx]
-    ct_id = int(selected_patient["ct_id"])
-    patient_series = filtered_series[filtered_series["ct_id"] == ct_id].copy().sort_values(["phase_name", "series_folder"])
-    patient_detail = filtered_detail[filtered_detail["ct_id"] == ct_id].copy().sort_values(["phase_name", "series_folder", "roi_name"])
-    patient_summary_row = filtered_patient[filtered_patient["ct_id"] == ct_id].iloc[0]
+    ct_id = str(selected_patient["ct_id"])
+    patient_series = filtered_series[filtered_series["ct_id"].astype(str).eq(ct_id)].copy().sort_values(["phase_name", "series_folder"])
+    patient_detail = filtered_detail[filtered_detail["ct_id"].astype(str).eq(ct_id)].copy().sort_values(["phase_name", "series_folder", "roi_name"])
+    patient_summary_row = filtered_patient[filtered_patient["ct_id"].astype(str).eq(ct_id)].iloc[0]
 
-    st.subheader(f"Patient CT {ct_id} | {selected_patient['ct_name']}")
+    st.subheader(f"Patient CT {ct_id}")
     patient_cols = st.columns(4)
     patient_cols[0].metric("Patient series", int(patient_summary_row["n_series"]))
     patient_cols[1].metric("Warning series", int(patient_summary_row["n_warning_series"]))
@@ -632,16 +685,17 @@ def main() -> None:
             "voxel_count",
             "warning",
         ]
-        st.dataframe(selected_detail[display_cols], use_container_width=True, hide_index=True)
+        st.dataframe(selected_detail[display_cols], width="stretch", hide_index=True)
 
     with tabs[1]:
-        st.dataframe(filtered_patient.sort_values(["ct_id"]), use_container_width=True, hide_index=True)
+        patient_display = filtered_patient.drop(columns=["ct_name"], errors="ignore").sort_values(["ct_id"])
+        st.dataframe(patient_display, width="stretch", hide_index=True)
         status_counts = filtered_detail["status"].value_counts().sort_index()
         if not status_counts.empty:
             st.bar_chart(status_counts)
 
     with tabs[2]:
-        st.dataframe(filtered_aggregate, use_container_width=True, hide_index=True)
+        st.dataframe(filtered_aggregate, width="stretch", hide_index=True)
         phase_stats = filtered_aggregate[filtered_aggregate["dimension"] == "phase_name"]
         if not phase_stats.empty:
             st.bar_chart(phase_stats.set_index("group_value")["n_rois"])
@@ -656,14 +710,14 @@ def main() -> None:
         )
         st.download_button(
             "Download filtered ROI CSV",
-            data=filtered_detail.to_csv(index=False).encode("utf-8"),
+            data=filtered_detail.drop(columns=["ct_name"], errors="ignore").to_csv(index=False).encode("utf-8"),
             file_name="filtered_roi_hu_qc_results.csv",
             mime="text/csv",
             width="stretch",
         )
         st.download_button(
             "Download filtered series CSV",
-            data=filtered_series.to_csv(index=False).encode("utf-8"),
+            data=filtered_series.drop(columns=["ct_name", "series_dir"], errors="ignore").to_csv(index=False).encode("utf-8"),
             file_name="filtered_roi_hu_qc_summary.csv",
             mime="text/csv",
             width="stretch",

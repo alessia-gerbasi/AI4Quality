@@ -8,7 +8,7 @@ variables:
   extravasation_value:
     calculation: "@{Extravasation}"
   has_extravasation:
-    calculation: "str(@extravasation_value).strip().lower() not in ['', 'none', 'nan']"
+    calculation: "str(@extravasation_value).strip().lower() not in ['', 'none', 'nan', 'no', 'false', '0']"
 
   patient_weight_kg:
     calculation: "@{Patient Weight}"
@@ -56,7 +56,7 @@ decisions:
     question: "Is patient weight known?"
     condition: "@has_patient_weight"
     if_true: check_dose_inputs
-    if_false: check_timing
+    if_false: outcome_missing_weight
 
   check_dose_inputs:
     question: "Is the administered dose known?"
@@ -126,6 +126,15 @@ outcomes:
       impact: "Timing, rather than dose, may be contributing to the quality failure."
       recommendations:
         - "Review the timing analysis and injection-to-acquisition delay."
+
+  outcome_missing_weight:
+    label: "missing weight"
+    card:
+      title: "Missing patient weight"
+      explanation: "The optimal dose could not be computed because patient weight is missing."
+      impact: "The scanner-specific dose range cannot be calculated without patient weight."
+      recommendations:
+        - "Record patient weight before interpreting dose adequacy or changing dose settings."
 
   outcome_other:
     label: "other"

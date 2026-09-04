@@ -11,6 +11,7 @@ from build_database import DB_PATH, build_database
 from llm_recommendations import DEFAULT_MODEL, generate_recommendation, image_quality_findings
 
 FINDING_LABELS = {
+    "missing weight": "Patient weight missing for optimal dose computation",
     "contrast_load_input_missing": "Patient weight missing for contrast-load range",
     "saline_volume_high": "Saline volume high",
     "saline_volume_low": "Saline volume low",
@@ -32,11 +33,23 @@ def load_data():
         build_database()
     with sqlite3.connect(DB_PATH) as db:
         tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        exam_columns = {row[1] for row in db.execute("PRAGMA table_info(exams)")} if "exams" in tables else set()
         quality_columns = {row[1] for row in db.execute("PRAGMA table_info(image_quality)")}
-        if "patient_warnings" not in tables or "attenuation_consistency" not in quality_columns:
+        if "patient_warnings" not in tables or "attenuation_consistency" not in quality_columns or "patient_name" in exam_columns:
             build_database()
             return load_data()
         return {name: pd.read_sql_query(f"SELECT * FROM {name}", db) for name in ("exams", "series", "image_quality", "rca", "injector_data", "patient_warnings")}
+
+
+def _stored_recommendation_is_stale(patient_id: str, input_json: str | None, data: dict[str, pd.DataFrame]) -> bool:
+    patient_dose = data["rca"][
+        data["rca"].ct_id.astype(str).eq(str(patient_id))
+        & data["rca"].rca_schema.fillna("").astype(str).eq("dose_schema_v1")
+    ]
+    has_missing_weight = patient_dose.rca_label.fillna("").astype(str).str.lower().eq("missing weight").any()
+    input_text = str(input_json or "").lower()
+    has_missing_weight_input = "missing weight" in input_text or "patient weight missing" in input_text
+    return has_missing_weight and not has_missing_weight_input
 
 
 def main():
@@ -158,26 +171,30 @@ def main():
         except RuntimeError as exc:
             st.error(str(exc))
         else:
-            st.session_state["recommendation"] = (text, source_name)
+            input_json = json.dumps({"findings": findings, "source": source}, default=str)
+            st.session_state["recommendation"] = (text, source_name, input_json)
             with sqlite3.connect(DB_PATH) as db:
                 db.execute(
                     "INSERT OR REPLACE INTO recommendations VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))",
                     (patient_id, None, "exam", DEFAULT_MODEL,
-                     source_name, text, json.dumps({"findings": findings}, default=str)),
+                     source_name, text, input_json),
                 )
                 db.commit()
     if "recommendation" not in st.session_state:
         with sqlite3.connect(DB_PATH) as db:
             stored = db.execute(
-                "SELECT recommendation, source FROM recommendations "
+                "SELECT recommendation, source, input_json FROM recommendations "
                 "WHERE ct_id = ? AND scope = 'exam' ORDER BY created_at DESC LIMIT 1",
                 (patient_id,),
             ).fetchone()
         if stored:
-            st.session_state["recommendation"] = (stored[0], stored[1])
+            st.session_state["recommendation"] = (stored[0], stored[1], stored[2])
     if "recommendation" in st.session_state:
-        text, source_name = st.session_state["recommendation"]
-        st.info(f"Source: {source_name}\n\n{text}")
+        text, source_name, input_json = st.session_state["recommendation"]
+        if _stored_recommendation_is_stale(patient_id, input_json, data):
+            st.warning("The stored LLM report predates the current missing-weight dose logic. Regenerate recommendations before using this narrative summary.")
+        else:
+            st.info(f"Source: {source_name}\n\n{text}")
 
     if not notes.empty:
         st.subheader("Recorded notes")

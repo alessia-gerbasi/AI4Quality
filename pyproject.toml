@@ -27,6 +27,7 @@ include = [
   "_00_Preprocessing*",
   "_01_Segmentation*",
   "_02_QualityCheck*",
+  "_06_Dashboard*",
   "shared*",
   "TACACP*"
 ]

@@ -39,6 +39,24 @@ AGGREGATED_OUT = BASE / 'rca_results_all.csv'
 CRITICAL_STATUSES = {'critical_low', 'critical_high'}
 
 
+def public_ct_folder(ct_id: object) -> str:
+    """Return the public CT identifier used in RCA outputs."""
+    return f"CT_QUALITY_{ct_id}"
+
+
+def source_ct_folder(series_df: pd.DataFrame, ct_id: object, series_folder: object, fallback: object = '') -> str:
+    """Recover the real source folder for internal joins without exposing names."""
+    if series_df.empty or 'ct_folder' not in series_df.columns:
+        return str(fallback or '')
+    candidates = series_df[
+        series_df['ct_id'].astype(str).eq(str(ct_id))
+        & series_df['series_folder'].astype(str).eq(str(series_folder))
+    ]
+    if candidates.empty:
+        candidates = series_df[series_df['ct_id'].astype(str).eq(str(ct_id))]
+    return str(candidates.iloc[0]['ct_folder']) if not candidates.empty else str(fallback or '')
+
+
 def load_data():
     """Load and join QC results → link table → injection history."""
 
@@ -232,10 +250,11 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
         procedure_code  = row.get('procedure_code', '')
 
         patient_data = get_injection_record(inj, injection_index, procedure_code)
+        internal_ct_folder = source_ct_folder(series_df, row.get('ct_id'), row.get('series_folder'), row.get('ct_folder', ''))
         patient_data = build_patient_context(
             patient_data,
             series_df,
-            row.get('ct_folder', ''),
+            internal_ct_folder,
             row.get('series_folder', ''),
             row.get('phase_name', ''),
             procedure_code,
@@ -273,7 +292,7 @@ def run_batch(schema_name: str, output_path: Path, statuses: set = None):
         rows.append({
             # QC identifiers
             'ct_id':           row.get('ct_id'),
-            'ct_folder':       row.get('ct_folder'),
+            'ct_folder':       public_ct_folder(row.get('ct_id')),
             'series_folder':   row.get('series_folder'),
             'phase_name':      row.get('phase_name'),
             'procedure_code':  procedure_code,

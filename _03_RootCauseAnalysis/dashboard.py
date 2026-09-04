@@ -173,7 +173,7 @@ def main():
                 ['ct_folder']
                 .tolist()
             )
-            display_names = [f.replace('CT_QUALITY_', '') for f in critical_folders]
+            display_names = [str(ct_id) for ct_id in qc_df_filtered[issue_mask][['ct_id', 'ct_folder']].drop_duplicates().sort_values('ct_id')['ct_id'].tolist()]
             display_to_full = dict(zip(display_names, critical_folders))
 
             if not display_names:
@@ -192,7 +192,7 @@ def main():
             )
             selected_series = st.selectbox("Series", folder_series)
 
-            run = st.button("▶ Run analysis", type="primary", use_container_width=True)
+            run = st.button("▶ Run analysis", type="primary", width="stretch")
 
         if not run:
             st.info("Select a case and series in the sidebar, then click **Run analysis**.")
@@ -274,7 +274,7 @@ def main():
             st.markdown(
                 f"""<div style="background:{qc_color}; border-left:4px solid #c62828;
                                padding:10px 16px; border-radius:6px; margin-bottom:12px; font-size:13px;">
-                    <b>QC result</b> — {selected_display} / {selected_series}<br/>
+                    <b>QC result</b> — CT {selected_display} / {selected_series}<br/>
                     Status: <b>{worst}</b> &nbsp;|&nbsp; Procedure: <b>{procedure_code}</b>
                     &nbsp;|&nbsp; Phase: <b>{phase_name}</b><br/>
                     Affected ROIs: {', '.join(affected_rois)}
@@ -452,20 +452,20 @@ def main():
             view = df[df['qc_worst_status'].isin(qc_filter) & df['rca_label'].isin(rca_filter)]
 
             # Table
-            display_cols = ['ct_id', 'ct_folder', 'series_folder', 'phase_name',
+            display_cols = ['ct_id', 'series_folder', 'phase_name',
                             'procedure_code', 'injection_index',
                             'qc_worst_status', 'affected_rois',
                             'rca_label', 'rca_title', 'rca_notes', 'rca_recommendations']
             st.dataframe(
                 view[[c for c in display_cols if c in view.columns]],
-                use_container_width=True, height=350
+                width="stretch", height=350
             )
 
             # Detail card for selected row
             if not view.empty:
                 st.subheader("Case detail")
                 row_idx = st.selectbox("Select row", view.index,
-                                       format_func=lambda i: f"{view.loc[i,'ct_folder']} | {view.loc[i,'series_folder']}")
+                                       format_func=lambda i: f"CT {view.loc[i,'ct_id']} | {view.loc[i,'series_folder']}")
                 row = view.loc[row_idx]
                 label = row['rca_label']
                 status_color, border_color = _label_colors(label)
@@ -487,7 +487,7 @@ def main():
                     st.write(f"**Variables**: {row.get('rca_variables', '')}")
                     st.write(f"**Path**: {row.get('rca_decision_path', '')}")
 
-            st.download_button("⬇ Download CSV", data=view.to_csv(index=False),
+            st.download_button("⬇ Download CSV", data=view.drop(columns=['ct_folder'], errors='ignore').to_csv(index=False),
                                file_name="rca_results.csv", mime="text/csv")
 
 
